@@ -1,0 +1,104 @@
+# ----- .NET build outputs -----
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+[Pp]ublish[Pp]rofiles/
+*.[Pp]ublish.[Xx]ml
+*.pubxml
+*.pubxml.user
+*.publishsettings
+*.vspscc
+*.vssscc
+
+# ----- BenchmarkDotNet -----
+BenchmarkDotNet.Artifacts/
+[Bb]enchmark[Dd]ot[Nn]et.[Aa]rtifacts/
+
+# ----- Test outputs / coverage -----
+[Tt]est[Rr]esults/
+[Cc]overage*/
+*.coverage
+*.coveragexml
+*.lcov
+*.opencover.xml
+*.dotCover
+*.dotcover
+*.NCrunchSolution
+_NCrunch_*
+
+# ----- IDE / editor -----
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+*.csproj.user
+*.csproj.DotSettings.user
+*.[Cc]ache
+*.sln.iml
+*~
+*.swp
+*.swo
+*.bak
+*.orig
+*.rej
+
+# ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# ----- NuGet -----
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+project.assets.json
+*.nuget.props
+*.nuget.targets
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# ----- Tooling caches -----
+.sonarqube/
+.stryker-tmp/
+StrykerOutput/
+.codecov/
+coverage/
+
+# ----- AOT / native build -----
+*.pdb
+*.ilk
+*.obj
+*.iobj
+*.ipdb
+*.exp
+*.lib
+
+# ----- Generated source -----
+*.g.cs
+*.generated.cs
+
+# ----- OS junk -----
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# ----- Logs / temps -----
+*.log
+*.tmp
+*.temp
+*.bak
+
+# ----- Documentation builds -----
+docs/_site/
+docs/api/
+DocFx/_site/

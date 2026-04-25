@@ -1,0 +1,12 @@
+- name: Getting started
+  href: getting-started.md
+- name: Diagnostics reference
+  href: diagnostics-reference.md
+- name: Encoding pipeline
+  href: encoding-pipeline.md
+- name: Async and cancellation
+  href: async-and-cancellation.md
+- name: Playback
+  href: playback.md
+- name: Options reference
+  href: options.md

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ModernLrc</RootNamespace>
+    <AssemblyName>ModernLrc</AssemblyName>
+
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>ModernLrc</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Anthony La</Authors>
+    <Copyright>Copyright © Anthony La</Copyright>
+    <Description>Modern, AOT-compatible LRC (lyrics) parser/writer library for .NET 10.</Description>
+    <PackageTags>lrc;lyrics;parser;writer;aot;trimming;dotnet</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Anthonyy232/ModernLrcParser</PackageProjectUrl>
+    <PackageReleaseNotes>See https://github.com/Anthonyy232/ModernLrcParser/releases</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/Anthonyy232/ModernLrcParser</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

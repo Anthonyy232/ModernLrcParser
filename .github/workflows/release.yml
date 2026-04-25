@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ModernLrcParser.sln
+
+      - name: Build
+        run: dotnet build src/ModernLrc/ModernLrc.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test ModernLrcParser.sln -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: Pack
+        run: dotnet pack src/ModernLrc/ModernLrc.csproj -c Release --no-build -o nupkg
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg/*.nupkg
+
+      - name: Push to NuGet
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: dotnet nuget push "nupkg/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

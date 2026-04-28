@@ -52,32 +52,41 @@ public readonly partial struct LrcTimestamp
         if (s.IsEmpty) return false;
         if (s[0] == '-') return false;
 
-        bool isCanonical = false;
-        int fractionLength = -1;
-        LrcTimestamp result;
+        // Single fused scan: locate every separator we'll need (up to three colons, first '.',
+        // first ',') in one pass over the input. The legacy implementation invoked four separate
+        // IndexOf/IndexOfAny calls; for an 8-char canonical timestamp that's four vector setups
+        // plus repeated short walks. For 2,000+ timestamps the fused form measurably tightens
+        // the parse hot path.
+        int colon1 = -1, colon2 = -1, colon3 = -1, dot = -1, comma = -1;
+        for (int i = 0; i < s.Length; i++)
+        {
+            char c = s[i];
+            if (c == ':')
+            {
+                if (colon1 < 0) colon1 = i;
+                else if (colon2 < 0) colon2 = i;
+                else if (colon3 < 0) colon3 = i;
+            }
+            else if (c == '.' && dot < 0) dot = i;
+            else if (c == ',' && comma < 0) comma = i;
+        }
 
-        int colon1 = s.IndexOf(':');
         if (colon1 <= 0) return false;
 
-        // Detect three-segment hours notation: h:mm:ss[.fff] or h:mm:ss[,fff]
-        // Only when the second segment is followed by another ':' before any '.' or ',' separator,
-        // AND the first (hours) segment is non-zero. When hours==0, "00:mm:ss" is indistinguishable
-        // from the legacy colon-fraction form "mm:ss:ff", so we fall through to that parser.
-        var afterFirst = s[(colon1 + 1)..];
-        int colon2 = afterFirst.IndexOf(':');
-        int dotOrCommaInAfterFirst = afterFirst.IndexOfAny('.', ',');
-        if (colon2 >= 0 && (dotOrCommaInAfterFirst < 0 || colon2 < dotOrCommaInAfterFirst))
+        // Three-segment hours notation: h:mm:ss[.fff] or h:mm:ss[,fff]
+        // Triggered when a second ':' appears before any '.' or ',', AND the hours segment is
+        // non-zero. With hours==0, "00:mm:ss" is indistinguishable from the legacy colon-fraction
+        // form "mm:ss:ff", so we fall through to the two-segment parser in that case.
+        if (colon2 >= 0 && (dot < 0 || colon2 < dot) && (comma < 0 || colon2 < comma))
         {
-            // Only try hours form when the first segment is non-zero.
             bool firstNonZero = false;
             for (int i = 0; i < colon1; i++) { if (s[i] != '0') { firstNonZero = true; break; } }
-            if (firstNonZero && TryParseHoursMinutesSeconds(s, colon1, out result, out fractionLength))
+            if (firstNonZero && TryParseHoursMinutesSeconds(s, colon1, out var hmsResult, out int hmsFractionLength))
             {
                 // Hours form is never canonical mm:ss.xx.
-                shape = new LrcTimestampShape(result, IsCanonical: false, fractionLength);
+                shape = new LrcTimestampShape(hmsResult, IsCanonical: false, hmsFractionLength);
                 return true;
             }
-            fractionLength = -1;
         }
 
         if (!long.TryParse(s[..colon1], NumberStyles.None, CultureInfo.InvariantCulture, out long minutes))
@@ -86,22 +95,26 @@ public readonly partial struct LrcTimestamp
         // Beyond this, the subsequent ticks multiplication could silently overflow.
         if (minutes < 0 || minutes > 24L * 365 * 100 * 60) return false;
 
-        var rest = s[(colon1 + 1)..];
-        if (rest.IsEmpty) return false;
+        // Pick the fraction separator from the fused scan: '.' or ',' first; else the first colon
+        // after colon1 (legacy colon-fraction form mm:ss:ff). Coordinates are absolute into s.
+        int sepIdx;
+        char fractionSeparator;
+        if (dot > colon1) { sepIdx = dot; fractionSeparator = '.'; }
+        else if (comma > colon1) { sepIdx = comma; fractionSeparator = ','; }
+        else if (colon2 > colon1) { sepIdx = colon2; fractionSeparator = ':'; }
+        else { sepIdx = -1; fractionSeparator = '\0'; }
 
-        int sepIdx = rest.IndexOfAny('.', ':', ',');
         ReadOnlySpan<char> secondsSpan;
         ReadOnlySpan<char> fractionSpan = default;
-        char fractionSeparator = '\0';
         if (sepIdx < 0)
         {
-            secondsSpan = rest;
+            secondsSpan = s[(colon1 + 1)..];
+            if (secondsSpan.IsEmpty) return false;
         }
         else
         {
-            secondsSpan = rest[..sepIdx];
-            fractionSeparator = rest[sepIdx];
-            fractionSpan = rest[(sepIdx + 1)..];
+            secondsSpan = s[(colon1 + 1)..sepIdx];
+            fractionSpan = s[(sepIdx + 1)..];
             if (fractionSpan.IsEmpty) return false;
         }
 
@@ -110,6 +123,7 @@ public readonly partial struct LrcTimestamp
         if (seconds < 0 || seconds >= 60) return false;
 
         long ticks = minutes * TimeSpan.TicksPerMinute + seconds * TimeSpan.TicksPerSecond;
+        int fractionLength = -1;
 
         if (!fractionSpan.IsEmpty)
         {
@@ -129,9 +143,9 @@ public readonly partial struct LrcTimestamp
             ticks += fracTicks;
         }
 
-        result = new LrcTimestamp(ticks);
+        var result = new LrcTimestamp(ticks);
         // Canonical: 2-segment, '.' fraction separator, exactly 2 fractional digits.
-        isCanonical = fractionSeparator == '.' && fractionLength == 2;
+        bool isCanonical = fractionSeparator == '.' && fractionLength == 2;
         shape = new LrcTimestampShape(result, isCanonical, fractionLength);
         return true;
     }

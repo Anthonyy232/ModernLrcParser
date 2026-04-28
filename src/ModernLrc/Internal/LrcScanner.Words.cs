@@ -109,27 +109,53 @@ internal ref partial struct LrcScanner
         }
 
         var wordsArray = ImmutableArray.Create(CollectionsMarshal.AsSpan(words));
-        for (int i = 0; i < lineStamps.Count; i++)
+        if (lineStamps.Count == 1)
         {
             _lines.Add(new LrcEnhancedLine
             {
-                Timestamp = lineStamps[i],
+                Timestamp = lineStamps[0],
                 Words = wordsArray,
                 EffectiveVoice = _currentVoice,
             });
+        }
+        else
+        {
+            foreach (var ts in CollectionsMarshal.AsSpan(lineStamps))
+            {
+                _lines.Add(new LrcEnhancedLine
+                {
+                    Timestamp = ts,
+                    Words = wordsArray,
+                    EffectiveVoice = _currentVoice,
+                });
+            }
         }
         _cursor.ConsumeLineTerminator();
     }
 
     /// <summary>Emit one <see cref="LrcPlainLine"/> per timestamp in <paramref name="stamps"/>,
-    /// each sharing the same <paramref name="text"/> reference.</summary>
+    /// each sharing the same <paramref name="text"/> reference. Single-timestamp lines (the
+    /// dominant case) take a branch-free fast path that avoids loop scaffolding and the
+    /// <see cref="List{T}"/> indexer.</summary>
     private void EmitPlainFanOut(string text, List<LrcTimestamp> stamps)
     {
-        for (int i = 0; i < stamps.Count; i++)
+        if (stamps.Count == 1)
         {
             _lines.Add(new LrcPlainLine
             {
-                Timestamp = stamps[i],
+                Timestamp = stamps[0],
+                Text = text,
+                EffectiveVoice = _currentVoice,
+            });
+            return;
+        }
+
+        var span = CollectionsMarshal.AsSpan(stamps);
+        foreach (var ts in span)
+        {
+            _lines.Add(new LrcPlainLine
+            {
+                Timestamp = ts,
                 Text = text,
                 EffectiveVoice = _currentVoice,
             });

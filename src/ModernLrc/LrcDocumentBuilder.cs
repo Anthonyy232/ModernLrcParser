@@ -143,7 +143,13 @@ public sealed class LrcDocumentBuilder
     public LrcDocumentBuilder AddLine(LrcTimestamp timestamp, string text, LrcVoice voice = LrcVoice.Default)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return AddLineCore([timestamp], text, voice);
+        _lines.Add(new LrcPlainLine
+        {
+            Timestamp = timestamp,
+            Text = text,
+            EffectiveVoice = voice,
+        });
+        return this;
     }
 
     /// <summary>Add a plain line at <paramref name="timestamp"/> (TimeSpan overload).</summary>
@@ -153,22 +159,23 @@ public sealed class LrcDocumentBuilder
         return AddLine(LrcTimestamp.FromTimeSpan(timestamp), text, voice);
     }
 
-    /// <summary>Add a plain line carrying multiple timestamps.</summary>
-    public LrcDocumentBuilder AddLine(ReadOnlySpan<LrcTimestamp> timestamps, string text, LrcVoice voice = LrcVoice.Default)
+    /// <summary>Add the same plain text at multiple timestamps. Each timestamp produces its own
+    /// <see cref="LrcPlainLine"/> sharing the same <paramref name="text"/> reference. The writer's
+    /// <see cref="LrcWriteOptions.CollapseIdenticalLines"/> setting controls whether they re-emit
+    /// as a <c>[t1][t2]text</c> group.</summary>
+    public LrcDocumentBuilder AddLineGroup(ReadOnlySpan<LrcTimestamp> timestamps, string text, LrcVoice voice = LrcVoice.Default)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (timestamps.IsEmpty) throw new ArgumentException("At least one timestamp is required.", nameof(timestamps));
-        return AddLineCore(timestamps, text, voice);
-    }
-
-    private LrcDocumentBuilder AddLineCore(ReadOnlySpan<LrcTimestamp> timestamps, string text, LrcVoice voice)
-    {
-        _lines.Add(new LrcPlainLine
+        foreach (var t in timestamps)
         {
-            Timestamps = EquatableArray.Create(timestamps),
-            Text = text,
-            EffectiveVoice = voice,
-        });
+            _lines.Add(new LrcPlainLine
+            {
+                Timestamp = t,
+                Text = text,
+                EffectiveVoice = voice,
+            });
+        }
         return this;
     }
 
@@ -176,64 +183,68 @@ public sealed class LrcDocumentBuilder
 
     /// <summary>Add an enhanced (word-timed) line at a single timestamp.</summary>
     public LrcDocumentBuilder AddEnhancedLine(LrcTimestamp lineTimestamp, ReadOnlySpan<LrcWord> words, LrcVoice voice = LrcVoice.Default)
-        => AddEnhancedLineCore([lineTimestamp], EquatableArray.Create(words), voice);
+        => AddEnhancedLineCore(lineTimestamp, EquatableArray.Create(words), voice);
 
     /// <summary>Add an enhanced (word-timed) line from a tuple sequence.</summary>
     public LrcDocumentBuilder AddEnhancedLine(LrcTimestamp lineTimestamp, IEnumerable<(LrcTimestamp Time, string Text)> words, LrcVoice voice = LrcVoice.Default)
     {
         ArgumentNullException.ThrowIfNull(words);
-        return AddEnhancedLineCore([lineTimestamp],
+        return AddEnhancedLineCore(lineTimestamp,
             EquatableArray.Create(words.Select(static w => new LrcWord(w.Time, w.Text))), voice);
     }
 
-    /// <summary>Add an enhanced (word-timed) line carrying multiple top-level timestamps.</summary>
-    public LrcDocumentBuilder AddEnhancedLine(ReadOnlySpan<LrcTimestamp> lineTimestamps, ReadOnlySpan<LrcWord> words, LrcVoice voice = LrcVoice.Default)
+    /// <summary>Add the same enhanced line content at multiple top-level timestamps. Each timestamp
+    /// produces its own <see cref="LrcEnhancedLine"/> sharing the same <paramref name="words"/>.</summary>
+    public LrcDocumentBuilder AddEnhancedLineGroup(ReadOnlySpan<LrcTimestamp> lineTimestamps, ReadOnlySpan<LrcWord> words, LrcVoice voice = LrcVoice.Default)
     {
         if (lineTimestamps.IsEmpty)
             throw new ArgumentException("At least one timestamp is required.", nameof(lineTimestamps));
-        return AddEnhancedLineCore(lineTimestamps, EquatableArray.Create(words), voice);
-    }
-
-    /// <summary>Add an enhanced (word-timed) line with multiple top-level timestamps from a tuple sequence.</summary>
-    public LrcDocumentBuilder AddEnhancedLine(ReadOnlySpan<LrcTimestamp> lineTimestamps, IEnumerable<(LrcTimestamp Time, string Text)> words, LrcVoice voice = LrcVoice.Default)
-    {
-        if (lineTimestamps.IsEmpty)
-            throw new ArgumentException("At least one timestamp is required.", nameof(lineTimestamps));
-        ArgumentNullException.ThrowIfNull(words);
-        return AddEnhancedLineCore(lineTimestamps,
-            EquatableArray.Create(words.Select(static w => new LrcWord(w.Time, w.Text))), voice);
-    }
-
-    private LrcDocumentBuilder AddEnhancedLineCore(ReadOnlySpan<LrcTimestamp> timestamps, EquatableArray<LrcWord> words, LrcVoice voice)
-    {
-        // Single chokepoint for null-Text validation. Catches both default(LrcWord) from span
-        // callers and any null tuple-Text from the IEnumerable path.
-        foreach (var w in words.AsSpan())
+        var wordsArr = EquatableArray.Create(words);
+        ValidateWords(wordsArr);
+        foreach (var t in lineTimestamps)
         {
-            if (w.Text is null)
-                throw new ArgumentException("LrcWord.Text cannot be null.", nameof(words));
+            _lines.Add(new LrcEnhancedLine
+            {
+                Timestamp = t,
+                Words = wordsArr,
+                EffectiveVoice = voice,
+            });
         }
+        return this;
+    }
+
+    private LrcDocumentBuilder AddEnhancedLineCore(LrcTimestamp timestamp, EquatableArray<LrcWord> words, LrcVoice voice)
+    {
+        ValidateWords(words);
         _lines.Add(new LrcEnhancedLine
         {
-            Timestamps = EquatableArray.Create(timestamps),
+            Timestamp = timestamp,
             Words = words,
             EffectiveVoice = voice,
         });
         return this;
     }
 
-    /// <summary>Append a fully-constructed <see cref="LrcLine"/> (reference held; records are immutable).
-    /// Throws <see cref="ArgumentException"/> if <paramref name="line"/>'s <c>Timestamps</c> collection is empty.</summary>
+    private static void ValidateWords(EquatableArray<LrcWord> words)
+    {
+        // Single chokepoint for null-Text validation — catches both default(LrcWord) from span
+        // callers and any null tuple-Text from the IEnumerable path.
+        foreach (var w in words.AsSpan())
+        {
+            if (w.Text is null)
+                throw new ArgumentException("LrcWord.Text cannot be null.", nameof(words));
+        }
+    }
+
+    /// <summary>Append a fully-constructed <see cref="LrcLine"/> (reference held; records are immutable).</summary>
     public LrcDocumentBuilder AddLine(LrcLine line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        if (line.Timestamps.Count == 0)
-            throw new ArgumentException("LrcLine must carry at least one timestamp.", nameof(line));
         _lines.Add(line);
         return this;
     }
 
-    /// <summary>Append every line from a sequence (each must satisfy the ≥ 1 timestamp invariant).</summary>
+    /// <summary>Append every line from a sequence.</summary>
     public LrcDocumentBuilder AddLines(IEnumerable<LrcLine> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
@@ -286,10 +297,9 @@ public sealed class LrcDocumentBuilder
         {
             foreach (var line in _lines)
             {
-                foreach (var t in line.Timestamps)
-                    if (checked(t.Ticks + delta.Ticks) < 0)
-                        throw new ArgumentOutOfRangeException(nameof(delta),
-                            "ShiftAll would produce a negative timestamp. Adjust Metadata.Offset instead.");
+                if (checked(line.Timestamp.Ticks + delta.Ticks) < 0)
+                    throw new ArgumentOutOfRangeException(nameof(delta),
+                        "ShiftAll would produce a negative timestamp. Adjust Metadata.Offset instead.");
                 if (line is LrcEnhancedLine enhanced)
                 {
                     foreach (var word in enhanced.Words)
@@ -309,13 +319,13 @@ public sealed class LrcDocumentBuilder
         for (int i = 0; i < _lines.Count; i++)
         {
             var line = _lines[i];
-            var shiftedStamps = ShiftTimestamps(line.Timestamps, delta);
+            var shifted = line.Timestamp + delta;
             _lines[i] = line switch
             {
-                LrcPlainLine p => p with { Timestamps = shiftedStamps },
+                LrcPlainLine p => p with { Timestamp = shifted },
                 LrcEnhancedLine e => e with
                 {
-                    Timestamps = shiftedStamps,
+                    Timestamp = shifted,
                     Words = ShiftWords(e.Words, delta),
                 },
 #pragma warning disable CS8509
@@ -326,14 +336,6 @@ public sealed class LrcDocumentBuilder
             };
         }
         return this;
-    }
-
-    private static EquatableArray<LrcTimestamp> ShiftTimestamps(EquatableArray<LrcTimestamp> stamps, TimeSpan delta)
-    {
-        var arr = new LrcTimestamp[stamps.Count];
-        for (int i = 0; i < stamps.Count; i++)
-            arr[i] = stamps[i] + delta;
-        return ImmutableArray.Create(arr);
     }
 
     private static EquatableArray<LrcWord> ShiftWords(EquatableArray<LrcWord> words, TimeSpan delta)
@@ -367,13 +369,11 @@ public sealed class LrcDocumentBuilder
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _lines.Count);
         ArgumentNullException.ThrowIfNull(replacement);
-        if (replacement.Timestamps.Count == 0)
-            throw new ArgumentException("LrcLine must carry at least one timestamp.", nameof(replacement));
         _lines[index] = replacement;
         return this;
     }
 
-    /// <summary>Materialize an immutable <see cref="LrcDocument"/>. Sorts by first timestamp
+    /// <summary>Materialize an immutable <see cref="LrcDocument"/>. Sorts by timestamp
     /// (stable: ties resolved by insertion order). Idempotent — does not mutate the builder.</summary>
     /// <returns>A fresh immutable document. Calling <see cref="Build"/> again after further
     /// fluent calls produces an updated document; the builder stays usable.</returns>

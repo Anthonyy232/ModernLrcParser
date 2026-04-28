@@ -9,10 +9,10 @@ public sealed class LrcLineTests
     {
         var line = new LrcPlainLine
         {
-            Timestamps = [LrcTimestamp.FromMilliseconds(1_000)],
+            Timestamp = LrcTimestamp.FromMilliseconds(1_000),
             Text = "hello world",
         };
-        line.Timestamps.Count.ShouldBe(1);
+        line.Timestamp.TotalMilliseconds.ShouldBe(1_000);
         line.Text.ShouldBe("hello world");
         line.EffectiveVoice.ShouldBe(LrcVoice.Default);
     }
@@ -22,7 +22,7 @@ public sealed class LrcLineTests
     {
         var line = new LrcPlainLine
         {
-            Timestamps = [LrcTimestamp.FromMilliseconds(0)],
+            Timestamp = LrcTimestamp.FromMilliseconds(0),
             Text = "x",
             EffectiveVoice = LrcVoice.Female,
         };
@@ -33,8 +33,8 @@ public sealed class LrcLineTests
     public void LrcPlainLine_ContentEquality_HoldsAcrossInstances()
     {
         var t = LrcTimestamp.FromMilliseconds(1_000);
-        var a = new LrcPlainLine { Timestamps = [t], Text = "x" };
-        var b = new LrcPlainLine { Timestamps = [t], Text = "x" };
+        var a = new LrcPlainLine { Timestamp = t, Text = "x" };
+        var b = new LrcPlainLine { Timestamp = t, Text = "x" };
         a.ShouldBe(b);
         a.GetHashCode().ShouldBe(b.GetHashCode());
     }
@@ -43,8 +43,8 @@ public sealed class LrcLineTests
     public void LrcPlainLine_DifferentText_NotEqual()
     {
         var t = LrcTimestamp.FromMilliseconds(1_000);
-        var a = new LrcPlainLine { Timestamps = [t], Text = "x" };
-        var b = new LrcPlainLine { Timestamps = [t], Text = "y" };
+        var a = new LrcPlainLine { Timestamp = t, Text = "x" };
+        var b = new LrcPlainLine { Timestamp = t, Text = "y" };
         a.ShouldNotBe(b);
     }
 
@@ -55,7 +55,7 @@ public sealed class LrcLineTests
         var t1 = LrcTimestamp.FromMilliseconds(500);
         var line = new LrcEnhancedLine
         {
-            Timestamps = [t0],
+            Timestamp = t0,
             Words = [new(t0, "hello "), new(t1, "world")],
         };
         line.Words.Count.ShouldBe(2);
@@ -66,8 +66,8 @@ public sealed class LrcLineTests
     public void LrcEnhancedLine_ContentEquality_DeepCompares()
     {
         var t = LrcTimestamp.FromMilliseconds(0);
-        var a = new LrcEnhancedLine { Timestamps = [t], Words = [new(t, "x")] };
-        var b = new LrcEnhancedLine { Timestamps = [t], Words = [new(t, "x")] };
+        var a = new LrcEnhancedLine { Timestamp = t, Words = [new(t, "x")] };
+        var b = new LrcEnhancedLine { Timestamp = t, Words = [new(t, "x")] };
         a.ShouldBe(b);
     }
 
@@ -76,7 +76,7 @@ public sealed class LrcLineTests
     {
         LrcLine line = new LrcPlainLine
         {
-            Timestamps = [LrcTimestamp.Zero],
+            Timestamp = LrcTimestamp.Zero,
             Text = "x",
         };
         // CS8509: compiler cannot prove the sealed private-constructor hierarchy is exhaustive;

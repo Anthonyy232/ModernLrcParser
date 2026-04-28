@@ -14,7 +14,7 @@ public sealed class LrcWriteOptionsTests
         o.EmitByteOrderMark.ShouldBeFalse();
         o.TrailingNewline.ShouldBeTrue();
         o.TimestampPrecision.ShouldBe(LrcTimestampPrecision.Centiseconds);
-        o.CollapseIdenticalLines.ShouldBeFalse();
+        o.CollapseIdenticalLines.ShouldBeTrue();
         o.EmitVoiceMarkers.ShouldBeTrue();
         o.VoiceMarkerOnChangeOnly.ShouldBeTrue();
         o.MetadataOrdering.ShouldBe(LrcMetadataOrdering.Canonical);

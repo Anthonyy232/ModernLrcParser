@@ -65,8 +65,8 @@ public enum LrcMetadataOrdering : byte
 ///     MetadataOrdering = LrcMetadataOrdering.Alphabetical,
 /// };
 ///
-/// // Collapse adjacent identical lines into a single multi-timestamp entry.
-/// var compact = new LrcWriteOptions { CollapseIdenticalLines = true };
+/// // Emit one timestamp per line instead of collapsing into [t1][t2]text groups.
+/// var verbose = new LrcWriteOptions { CollapseIdenticalLines = false };
 /// </code>
 /// </example>
 public sealed record LrcWriteOptions
@@ -93,8 +93,10 @@ public sealed record LrcWriteOptions
     public LrcTimestampPrecision TimestampPrecision { get; init; } = LrcTimestampPrecision.Centiseconds;
 
     /// <summary>Collapse consecutive lines with identical content (text + voice + line type) into
-    /// a single multi-timestamp line. Default <c>false</c>.</summary>
-    public bool CollapseIdenticalLines { get; init; }
+    /// a single multi-timestamp line (<c>[t1][t2]text</c>). Default <c>true</c> — this is the
+    /// round-trip mechanism for inputs originally written as multi-timestamp groups, since the
+    /// parser fans them out into one line per timestamp.</summary>
+    public bool CollapseIdenticalLines { get; init; } = true;
 
     /// <summary>Emit voice markers (default <c>true</c>). When <c>false</c>, voice metadata is dropped.</summary>
     public bool EmitVoiceMarkers { get; init; } = true;

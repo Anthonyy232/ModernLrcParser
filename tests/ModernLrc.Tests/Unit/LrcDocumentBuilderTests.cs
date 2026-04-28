@@ -6,7 +6,7 @@ namespace ModernLrc.Tests.Unit;
 
 public sealed class LrcDocumentBuilderTests
 {
-    // ---- Task 37: construction, metadata, and Build() ----
+    // ---- construction, metadata, and Build() ----
 
     [Fact]
     public void Build_FromEmpty_ProducesEmptyDocument()
@@ -138,7 +138,7 @@ public sealed class LrcDocumentBuilderTests
         doc.Lines.Count.ShouldBe(0);
     }
 
-    // ---- Task 38: AddLine and AddEnhancedLine variants ----
+    // ---- AddLine and AddEnhancedLine variants ----
 
     [Fact]
     public void AddLine_StringTimestamp_BuildsPlainLine()
@@ -149,7 +149,7 @@ public sealed class LrcDocumentBuilderTests
         doc.Lines.Count.ShouldBe(1);
         var line = (LrcPlainLine)doc.Lines[0];
         line.Text.ShouldBe("hello");
-        line.Timestamps[0].ShouldBe(LrcTimestamp.Parse("00:12.34", CultureInfo.InvariantCulture));
+        line.Timestamp.ShouldBe(LrcTimestamp.Parse("00:12.34", CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class LrcDocumentBuilderTests
         var doc = new LrcDocumentBuilder()
             .AddLine(t, "x")
             .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamps[0].ShouldBe(t);
+        ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(t);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class LrcDocumentBuilderTests
         var doc = new LrcDocumentBuilder()
             .AddLine(ts, "x")
             .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamps[0].ShouldBe(LrcTimestamp.FromTimeSpan(ts));
+        ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(LrcTimestamp.FromTimeSpan(ts));
     }
 
     [Fact]
@@ -180,21 +180,26 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
-    public void AddLine_MultiTimestamp_PreservesAll()
+    public void AddLineGroup_FansOutIntoOneLinePerTimestamp()
     {
         var t1 = LrcTimestamp.FromMilliseconds(1_000);
         var t2 = LrcTimestamp.FromMilliseconds(2_000);
         var doc = new LrcDocumentBuilder()
-            .AddLine([t1, t2], "x")
+            .AddLineGroup([t1, t2], "x")
             .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamps.Count.ShouldBe(2);
+        doc.Lines.Count.ShouldBe(2);
+        ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(t1);
+        ((LrcPlainLine)doc.Lines[1]).Timestamp.ShouldBe(t2);
+        // Same Text reference shared across the fan-out — one allocation, not N.
+        ReferenceEquals(((LrcPlainLine)doc.Lines[0]).Text, ((LrcPlainLine)doc.Lines[1]).Text)
+            .ShouldBeTrue();
     }
 
     [Fact]
-    public void AddLine_EmptyTimestampsForMulti_Throws()
+    public void AddLineGroup_EmptyTimestamps_Throws()
     {
         Should.Throw<ArgumentException>(() =>
-            new LrcDocumentBuilder().AddLine(ReadOnlySpan<LrcTimestamp>.Empty, "x"));
+            new LrcDocumentBuilder().AddLineGroup(ReadOnlySpan<LrcTimestamp>.Empty, "x"));
     }
 
     [Fact]
@@ -255,17 +260,20 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
-    public void AddEnhancedLine_MultiTimestamp_Works()
+    public void AddEnhancedLineGroup_FansOutIntoOneLinePerTimestamp()
     {
         var t1 = LrcTimestamp.FromMilliseconds(1_000);
         var t2 = LrcTimestamp.FromMilliseconds(2_000);
         ReadOnlySpan<LrcTimestamp> stamps = [t1, t2];
         ReadOnlySpan<LrcWord> words = [new(t1, "x")];
         var doc = new LrcDocumentBuilder()
-            .AddEnhancedLine(stamps, words)
+            .AddEnhancedLineGroup(stamps, words)
             .Build();
-        var line = (LrcEnhancedLine)doc.Lines[0];
-        line.Timestamps.Count.ShouldBe(2);
+        doc.Lines.Count.ShouldBe(2);
+        ((LrcEnhancedLine)doc.Lines[0]).Timestamp.ShouldBe(t1);
+        ((LrcEnhancedLine)doc.Lines[1]).Timestamp.ShouldBe(t2);
+        // Same Words array shared.
+        ((LrcEnhancedLine)doc.Lines[0]).Words.Equals(((LrcEnhancedLine)doc.Lines[1]).Words).ShouldBeTrue();
     }
 
     [Fact]
@@ -291,16 +299,9 @@ public sealed class LrcDocumentBuilderTests
     public void AddLine_LrcLineDirect_HoldsReference()
     {
         var t = LrcTimestamp.FromMilliseconds(500);
-        var line = new LrcPlainLine { Timestamps = [t], Text = "x" };
+        var line = new LrcPlainLine { Timestamp = t, Text = "x" };
         var doc = new LrcDocumentBuilder().AddLine(line).Build();
         doc.Lines[0].ShouldBeSameAs(line);
-    }
-
-    [Fact]
-    public void AddLine_LrcLineWithEmptyTimestamps_Throws()
-    {
-        var bad = new LrcPlainLine { Timestamps = EquatableArray<LrcTimestamp>.Empty, Text = "x" };
-        Should.Throw<ArgumentException>(() => new LrcDocumentBuilder().AddLine(bad));
     }
 
     [Fact]
@@ -309,14 +310,14 @@ public sealed class LrcDocumentBuilderTests
         var t = LrcTimestamp.FromMilliseconds(1_000);
         LrcLine[] lines =
         [
-            new LrcPlainLine { Timestamps = [t], Text = "a" },
-            new LrcPlainLine { Timestamps = [t + TimeSpan.FromMilliseconds(1)], Text = "b" },
+            new LrcPlainLine { Timestamp = t, Text = "a" },
+            new LrcPlainLine { Timestamp = t + TimeSpan.FromMilliseconds(1), Text = "b" },
         ];
         var doc = new LrcDocumentBuilder().AddLines(lines).Build();
         doc.Lines.Count.ShouldBe(2);
     }
 
-    // ---- Task 39: manipulation, ShiftAll, and Build sort ----
+    // ---- manipulation, ShiftAll, and Build sort ----
 
     [Fact]
     public void LineCount_ReflectsInsertions()
@@ -376,7 +377,7 @@ public sealed class LrcDocumentBuilderTests
     public void ReplaceLine_SwapsAtIndex()
     {
         var t = LrcTimestamp.FromMilliseconds(2_000);
-        var replacement = new LrcPlainLine { Timestamps = [t], Text = "replaced" };
+        var replacement = new LrcPlainLine { Timestamp = t, Text = "replaced" };
         var doc = new LrcDocumentBuilder()
             .AddLine("00:01.00", "a")
             .AddLine("00:02.00", "b")
@@ -393,8 +394,8 @@ public sealed class LrcDocumentBuilderTests
             .AddLine("00:02.00", "b")
             .ShiftAll(TimeSpan.FromMilliseconds(500))
             .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamps[0].TotalMilliseconds.ShouldBe(1_500);
-        ((LrcPlainLine)doc.Lines[1]).Timestamps[0].TotalMilliseconds.ShouldBe(2_500);
+        ((LrcPlainLine)doc.Lines[0]).Timestamp.TotalMilliseconds.ShouldBe(1_500);
+        ((LrcPlainLine)doc.Lines[1]).Timestamp.TotalMilliseconds.ShouldBe(2_500);
     }
 
     [Fact]
@@ -407,7 +408,7 @@ public sealed class LrcDocumentBuilderTests
             .ShiftAll(TimeSpan.FromMilliseconds(500))
             .Build();
         var line = (LrcEnhancedLine)doc.Lines[0];
-        line.Timestamps[0].TotalMilliseconds.ShouldBe(1_500);
+        line.Timestamp.TotalMilliseconds.ShouldBe(1_500);
         line.Words[0].Timestamp.TotalMilliseconds.ShouldBe(1_500);
         line.Words[1].Timestamp.TotalMilliseconds.ShouldBe(2_000);
     }
@@ -422,7 +423,7 @@ public sealed class LrcDocumentBuilderTests
             b.ShiftAll(TimeSpan.FromMilliseconds(-1_000)));
         // Original timestamps must be intact.
         var doc = b.Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamps[0].TotalMilliseconds.ShouldBe(500);
+        ((LrcPlainLine)doc.Lines[0]).Timestamp.TotalMilliseconds.ShouldBe(500);
     }
 
     [Fact]
@@ -471,7 +472,7 @@ public sealed class LrcDocumentBuilderTests
         var source = new LrcDocument
         {
             Metadata = new LrcMetadata { Title = "X" },
-            Lines = [new LrcPlainLine { Timestamps = [t], Text = "y" }],
+            Lines = [new LrcPlainLine { Timestamp = t, Text = "y" }],
         };
         var b = new LrcDocumentBuilder(source);
         b.LineCount.ShouldBe(1);
@@ -508,7 +509,7 @@ public sealed class LrcDocumentBuilderTests
     {
         var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
         var t = LrcTimestamp.FromMilliseconds(1_000);
-        var replacement = new LrcPlainLine { Timestamps = [t], Text = "y" };
+        var replacement = new LrcPlainLine { Timestamp = t, Text = "y" };
         Should.Throw<ArgumentOutOfRangeException>(() => b.ReplaceLine(5, replacement));
         Should.Throw<ArgumentOutOfRangeException>(() => b.ReplaceLine(-1, replacement));
     }
@@ -526,6 +527,6 @@ public sealed class LrcDocumentBuilderTests
         var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
         Should.Throw<ArgumentOutOfRangeException>(() => b.ShiftAll(TimeSpan.MinValue));
         // Builder unchanged: "00:01.00" is 1 second (1000 ms).
-        ((LrcPlainLine)b.GetLineAt(0)).Timestamps[0].TotalMilliseconds.ShouldBe(1_000);
+        ((LrcPlainLine)b.GetLineAt(0)).Timestamp.TotalMilliseconds.ShouldBe(1_000);
     }
 }

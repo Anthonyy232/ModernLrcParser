@@ -31,7 +31,7 @@ var quietStrict = new LrcParseOptions
 | `EmitByteOrderMark` | `false` | Sole BOM control. `true` prepends `Encoding.GetPreamble()`. |
 | `TrailingNewline` | `true` | Whether the rendered output ends with one line ending. |
 | `TimestampPrecision` | `Centiseconds` | `mm:ss.xx` vs `mm:ss.xxx` (Milliseconds). |
-| `CollapseIdenticalLines` | `false` | Adjacent identical-content lines merge into one multi-timestamp entry. |
+| `CollapseIdenticalLines` | `true` | Adjacent identical-content lines merge into one multi-timestamp entry (`[t1][t2]text`). This is the round-trip mechanism for inputs originally written as multi-timestamp groups, since the parser fans them out into one line per timestamp. Set `false` to emit one timestamp per line. |
 | `EmitVoiceMarkers` | `true` | When `false`, voice metadata is dropped on render. |
 | `VoiceMarkerOnChangeOnly` | `true` | When `false`, every non-default-voice line gets an explicit marker. |
 | `MetadataOrdering` | `Canonical` | Ordering of the metadata block — see below. |

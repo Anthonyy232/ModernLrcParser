@@ -11,12 +11,12 @@ public static class LrcDocumentExtensions
     /// (signed) because a large negative <see cref="LrcMetadata.Offset"/> can shift past zero —
     /// <see cref="LrcTimestamp"/> cannot represent that.</summary>
     /// <param name="doc">The owning document.</param>
-    /// <param name="t">A timestamp (typically from <see cref="LrcLine.Timestamps"/>).</param>
+    /// <param name="t">A timestamp (typically from <see cref="LrcLine.Timestamp"/>).</param>
     /// <returns>The effective time, with offset applied.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="doc"/> is null.</exception>
     /// <example>
     /// <code>
-    /// var ts = doc.Lines[0].Timestamps[0];
+    /// var ts = doc.Lines[0].Timestamp;
     /// TimeSpan effective = doc.GetEffectiveTime(ts);
     /// </code>
     /// </example>
@@ -26,7 +26,7 @@ public static class LrcDocumentExtensions
         return t.ToTimeSpan() + doc.Metadata.Offset;
     }
 
-    /// <summary>Currently-singing line: greatest line whose first effective timestamp is
+    /// <summary>Currently-singing line: greatest line whose effective timestamp is
     /// ≤ <paramref name="position"/>. O(log n) via binary search.</summary>
     /// <param name="doc">The document to search.</param>
     /// <param name="position">Playhead position (post-offset).</param>
@@ -50,26 +50,23 @@ public static class LrcDocumentExtensions
         var offset = doc.Metadata.Offset;
         int lo = 0, hi = lines.Count - 1;
 
-        // Binary search for the greatest index whose effective first timestamp ≤ position.
+        // Binary search for the greatest index whose effective timestamp ≤ position.
         while (lo < hi)
         {
             int mid = lo + ((hi - lo + 1) / 2);
-            if (FirstAt(lines[mid], offset) <= position) lo = mid;
+            if (EffectiveAt(lines[mid], offset) <= position) lo = mid;
             else hi = mid - 1;
         }
 
-        if (FirstAt(lines[lo], offset) > position) return null;
+        if (EffectiveAt(lines[lo], offset) > position) return null;
         return lines[lo];
 
-        static TimeSpan FirstAt(LrcLine line, TimeSpan offset)
-        {
-            Debug.Assert(line.Timestamps.Count > 0, "LrcLine must carry ≥ 1 timestamp");
-            return line.Timestamps[0].ToTimeSpan() + offset;
-        }
+        static TimeSpan EffectiveAt(LrcLine line, TimeSpan offset)
+            => line.Timestamp.ToTimeSpan() + offset;
     }
 
-    /// <summary>Lines whose first effective timestamp ∈ <c>[start, end)</c>.
-    /// Yielded in document order (sorted by first timestamp; ties resolved by original index).</summary>
+    /// <summary>Lines whose effective timestamp ∈ <c>[start, end)</c>.
+    /// Yielded in document order (sorted by timestamp; ties resolved by original index).</summary>
     /// <param name="doc">The document to scan.</param>
     /// <param name="start">Inclusive lower bound (post-offset).</param>
     /// <param name="end">Exclusive upper bound (post-offset).</param>
@@ -81,7 +78,7 @@ public static class LrcDocumentExtensions
         var offset = doc.Metadata.Offset;
         foreach (var line in doc.Lines)
         {
-            var t = line.Timestamps[0].ToTimeSpan() + offset;
+            var t = line.Timestamp.ToTimeSpan() + offset;
             if (t >= start && t < end)
                 yield return line;
         }

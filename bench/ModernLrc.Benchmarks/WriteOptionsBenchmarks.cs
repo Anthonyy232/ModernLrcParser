@@ -9,7 +9,7 @@ namespace ModernLrc.Benchmarks;
 /// <summary>Tracks per-render cost of write-option variants that hit different code paths:
 /// <list type="bullet">
 ///   <item>Alphabetical metadata ordering — exercises the <c>RentSortedNonTypedTags</c> ArrayPool sort path.</item>
-///   <item><see cref="LrcWriteOptions.CollapseIdenticalLines"/> — exercises the iterator-based collapse path.</item>
+///   <item><see cref="LrcWriteOptions.CollapseIdenticalLines"/> — exercises the span-based run-collapse path.</item>
 ///   <item><see cref="LrcWriteOptions.EmitByteOrderMark"/> — adds preamble emission to the byte path.</item>
 /// </list>
 /// All paths render to in-memory buffers; no I/O.</summary>

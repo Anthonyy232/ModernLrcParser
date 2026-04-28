@@ -2,15 +2,13 @@ namespace ModernLrc.Model;
 
 /// <summary>A single lyric line. Sealed hierarchy: every <see cref="LrcLine"/> is exactly
 /// one of <see cref="LrcPlainLine"/> or <see cref="LrcEnhancedLine"/>.</summary>
-/// <remarks>The <see cref="Timestamps"/> collection always carries ≥ 1 element when the
-/// line was produced by the parser or <see cref="LrcDocumentBuilder"/>; the type itself does
-/// not validate this on direct construction. Code that consumes user-supplied
-/// <see cref="LrcLine"/> instances should treat <c>Timestamps[0]</c> as a precondition.</remarks>
+/// <remarks>Each line carries exactly one <see cref="Timestamp"/>. LRC files written as
+/// <c>[t1][t2]text</c> are parsed as N lines sharing the same content; the writer can
+/// re-collapse them via <see cref="LrcWriteOptions.CollapseIdenticalLines"/>.</remarks>
 public abstract record LrcLine
 {
-    /// <summary>Timestamps that select this line (≥ 1 element). The parser and builder maintain
-    /// this invariant; the type itself does not validate the count on assignment.</summary>
-    public required EquatableArray<LrcTimestamp> Timestamps { get; init; }
+    /// <summary>The timestamp at which this line plays.</summary>
+    public required LrcTimestamp Timestamp { get; init; }
 
     /// <summary>Resolved voice state — either propagated from a prior explicit marker or the document default.</summary>
     public LrcVoice EffectiveVoice { get; init; } = LrcVoice.Default;

@@ -15,7 +15,7 @@ When you query the document for "what's playing now", apply the offset on the wa
 out:
 
 ```csharp
-TimeSpan effective = doc.GetEffectiveTime(line.Timestamps[0]);
+TimeSpan effective = doc.GetEffectiveTime(line.Timestamp);
 LrcLine? current = doc.FindLineAt(player.Position);   // already factors offset
 ```
 
@@ -39,7 +39,7 @@ string text = current switch
 ```
 
 [`FindLineAt`](xref:ModernLrc.Model.LrcDocumentExtensions.FindLineAt*) returns the
-*greatest* line whose first effective timestamp is ≤ the position. So it returns
+*greatest* line whose effective timestamp is ≤ the position. So it returns
 the line that's currently being sung, even if the position is between two lines.
 
 ## Highlight the current word in an enhanced line

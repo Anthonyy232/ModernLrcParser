@@ -37,7 +37,7 @@ Console.WriteLine(result.HasErrors);                  // false
 ```csharp
 foreach (var line in result.Document.Lines)
 {
-    var t = line.Timestamps[0];
+    var t = line.Timestamp;
     switch (line)
     {
         case LrcPlainLine plain:

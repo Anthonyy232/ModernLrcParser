@@ -54,7 +54,7 @@ public class PlaybackBenchmarks
     public TimeSpan GetEffectiveTime_AppliesOffset()
     {
         // Document carries a -150 ms offset (set by Sources.BuildDocument).
-        var ts = _doc.Lines[_doc.Lines.Count / 2].Timestamps[0];
+        var ts = _doc.Lines[_doc.Lines.Count / 2].Timestamp;
         return _doc.GetEffectiveTime(ts);
     }
 }

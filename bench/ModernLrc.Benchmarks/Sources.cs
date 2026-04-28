@@ -61,12 +61,12 @@ internal static class Sources
             }
             else if (i % 7 == 6)
             {
-                var stamps = new[]
-                {
+                ReadOnlySpan<LrcTimestamp> stamps =
+                [
                     LrcTimestamp.FromMilliseconds(t),
                     LrcTimestamp.FromMilliseconds(t + 60_000),
-                };
-                builder.AddLine(stamps, $"chorus line {i} repeats", voice);
+                ];
+                builder.AddLineGroup(stamps, $"chorus line {i} repeats", voice);
             }
             else
             {

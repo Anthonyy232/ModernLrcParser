@@ -2,13 +2,13 @@ using ModernLrc.Model;
 
 namespace ModernLrc.Internal;
 
-/// <summary>Stable sort of a list of <see cref="LrcLine"/> by first timestamp, used by the
+/// <summary>Stable sort of a list of <see cref="LrcLine"/> by timestamp, used by the
 /// scanner and the document builder. Ties resolve to original insertion order.
 /// Includes a fast O(N) monotonicity check that skips the indexed-sort allocation when
 /// the input is already in ascending timestamp order — the common case.</summary>
 internal static class LrcLineStableSort
 {
-    /// <summary>Sort <paramref name="lines"/> by first timestamp (stable). Returns a fresh array;
+    /// <summary>Sort <paramref name="lines"/> by timestamp (stable). Returns a fresh array;
     /// <paramref name="reordered"/> reports whether any element changed position. Callers that
     /// emit a "lines reordered" diagnostic gate on that flag.</summary>
     public static LrcLine[] Sort(List<LrcLine> lines, out bool reordered)
@@ -18,7 +18,7 @@ internal static class LrcLineStableSort
         bool monotonic = true;
         for (int i = 1; i < lines.Count; i++)
         {
-            if (lines[i].Timestamps[0].CompareTo(lines[i - 1].Timestamps[0]) < 0)
+            if (lines[i].Timestamp.CompareTo(lines[i - 1].Timestamp) < 0)
             {
                 monotonic = false;
                 break;
@@ -39,7 +39,7 @@ internal static class LrcLineStableSort
         for (int i = 0; i < lines.Count; i++) indexed[i] = (i, lines[i]);
         Array.Sort(indexed, static (a, b) =>
         {
-            int cmp = a.Line.Timestamps[0].CompareTo(b.Line.Timestamps[0]);
+            int cmp = a.Line.Timestamp.CompareTo(b.Line.Timestamp);
             return cmp != 0 ? cmp : a.Index.CompareTo(b.Index);
         });
 

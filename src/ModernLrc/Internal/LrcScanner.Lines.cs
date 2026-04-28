@@ -1,6 +1,3 @@
-using System.Collections.Immutable;
-using System.Globalization;
-using System.Runtime.InteropServices;
 using ModernLrc.Diagnostics;
 using ModernLrc.Model;
 
@@ -69,30 +66,27 @@ internal ref partial struct LrcScanner
                 continue;
             }
 
-            if (LrcTimestamp.TryParse(inside, CultureInfo.InvariantCulture, out var ts))
+            if (LrcTimestamp.TryParseWithShape(inside, out var shape))
             {
-                bool isCanonical = ScanTimestampShape(inside, out int fractionLength);
-                if (!isCanonical)
+                if (!shape.IsCanonical)
                 {
                     _diag.Emit(LrcDiagnosticSeverity.Info, LrcDiagnosticIds.NonStandardTimestamp,
                         openLine, openColumn, inside.Length + 2,
                         $"Non-standard timestamp variant '[{inside.ToString()}]' accepted.");
                 }
-                if (_options.ImplausibleTimestampThreshold > TimeSpan.Zero
-                    && ts.ToTimeSpan() > _options.ImplausibleTimestampThreshold)
+                if (shape.Value.Ticks > _implausibleTicks)
                 {
                     _diag.Emit(LrcDiagnosticSeverity.Info, LrcDiagnosticIds.ImplausibleTimestamp,
                         openLine, openColumn, inside.Length + 2,
-                        $"Timestamp '{ts}' exceeds implausibility threshold.");
+                        $"Timestamp '{shape.Value}' exceeds implausibility threshold.");
                 }
-                // LRC0031: input had sub-millisecond precision that was truncated.
-                if (fractionLength > 3)
+                if (shape.FractionLength > 3)
                 {
                     _diag.Emit(LrcDiagnosticSeverity.Info, LrcDiagnosticIds.TruncatedPrecision,
                         openLine, openColumn, inside.Length + 2,
                         $"Sub-millisecond precision in '[{inside.ToString()}]' was truncated.");
                 }
-                stamps.Add(ts);
+                stamps.Add(shape.Value);
                 _cursor.Position = closeIdx2 + 1;
             }
             else if (firstGroup)
@@ -171,12 +165,7 @@ internal ref partial struct LrcScanner
                 _diag.Emit(LrcDiagnosticSeverity.Warning, LrcDiagnosticIds.TimestampWithoutText,
                     _cursor.Line, _cursor.Column, 0, "Timestamp without following text.");
             }
-            _lines.Add(new LrcPlainLine
-            {
-                Timestamps = ImmutableArray.Create(CollectionsMarshal.AsSpan(stamps)),
-                Text = text,
-                EffectiveVoice = _currentVoice,
-            });
+            EmitPlainFanOut(text, stamps);
             _cursor.Position += contentSlice.Length;
             _cursor.ConsumeLineTerminator();
         }
@@ -184,47 +173,4 @@ internal ref partial struct LrcScanner
 
     private static bool IsIdTagFirstChar(char c)
         => c is >= 'a' and <= 'z' || c is >= 'A' and <= 'Z' || c == '#';
-
-    /// <summary>Reports whether <paramref name="inside"/> matches the canonical
-    /// <c>mm:ss.xx</c> shape (exactly one colon, one dot, two fractional digits, no comma)
-    /// and emits the fraction length (or -1) so the caller can do the sub-millisecond
-    /// precision check without a second pass. Fraction-separator detection mirrors
-    /// <c>LrcTimestamp.TryParse</c>: <c>.</c> and <c>,</c> are decimal fractions;
-    /// a third colon (or "second colon when the first segment is all zeros") is a colon-fraction.</summary>
-    private static bool ScanTimestampShape(ReadOnlySpan<char> inside, out int fractionLength)
-    {
-        int colon = -1;
-        int secondColon = -1;
-        int thirdColon = -1;
-        int dot = -1;
-        int comma = -1;
-        for (int i = 0; i < inside.Length; i++)
-        {
-            char c = inside[i];
-            if (c == ':')
-            {
-                if (colon < 0) colon = i;
-                else if (secondColon < 0) secondColon = i;
-                else if (thirdColon < 0) thirdColon = i;
-            }
-            else if (c == '.' && dot < 0) dot = i;
-            else if (c == ',' && comma < 0) comma = i;
-        }
-
-        // Locate the fraction separator with the same priority LrcTimestamp.TryParse uses:
-        //   '.' or ',' (decimal) > thirdColon (h:mm:ss:ff) > secondColon when first segment
-        //   is all zeros (mm:ss:ff form, since "00:23:45" parses as the colon-fraction shape).
-        int fracSep;
-        if (dot >= 0) fracSep = dot;
-        else if (comma >= 0) fracSep = comma;
-        else if (thirdColon >= 0) fracSep = thirdColon;
-        else if (secondColon >= 0 && colon > 0 && !inside[..colon].ContainsAnyExcept('0')) fracSep = secondColon;
-        else fracSep = -1;
-
-        fractionLength = fracSep >= 0 ? inside.Length - fracSep - 1 : -1;
-
-        // Canonical mm:ss.xx: one colon, one dot, two fractional digits, no comma.
-        if (colon < 0 || dot < 0 || secondColon >= 0 || comma >= 0) return false;
-        return inside.Length - dot - 1 == 2;
-    }
 }

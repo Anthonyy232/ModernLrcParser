@@ -36,7 +36,7 @@ public static partial class LrcWriter
         int tsLen = options.TimestampPrecision == LrcTimestampPrecision.Milliseconds ? 11 : 10;
         foreach (var line in document.Lines)
         {
-            total += line.Timestamps.Count * tsLen;
+            total += tsLen;
             if (options.EmitVoiceMarkers && line.EffectiveVoice != LrcVoice.Default)
                 total += 3;
             switch (line)

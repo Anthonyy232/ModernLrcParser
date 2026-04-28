@@ -12,7 +12,7 @@ public sealed class LrcDocumentExtensionsTests
         {
             arr[i] = new LrcPlainLine
             {
-                Timestamps = [LrcTimestamp.FromMilliseconds(lines[i].ms)],
+                Timestamp = LrcTimestamp.FromMilliseconds(lines[i].ms),
                 Text = lines[i].text,
             };
         }
@@ -106,14 +106,14 @@ public sealed class LrcDocumentExtensionsTests
     [Fact]
     public void LinesInRange_PreservesDocumentOrder_OnTies()
     {
-        // Two lines with the same first timestamp — original order must be preserved.
+        // Two lines with the same timestamp — original order must be preserved.
         var t = LrcTimestamp.FromMilliseconds(1_000);
         var doc = new LrcDocument
         {
             Lines =
             [
-                new LrcPlainLine { Timestamps = [t], Text = "first" },
-                new LrcPlainLine { Timestamps = [t], Text = "second" },
+                new LrcPlainLine { Timestamp = t, Text = "first" },
+                new LrcPlainLine { Timestamp = t, Text = "second" },
             ],
         };
         var range = doc.LinesInRange(TimeSpan.Zero, TimeSpan.FromSeconds(2)).ToList();
@@ -126,7 +126,7 @@ public sealed class LrcDocumentExtensionsTests
     {
         LrcLine line = new LrcPlainLine
         {
-            Timestamps = [LrcTimestamp.Zero],
+            Timestamp = LrcTimestamp.Zero,
             Text = "hello world",
         };
         line.GetText().ShouldBe("hello world");
@@ -138,7 +138,7 @@ public sealed class LrcDocumentExtensionsTests
         var t = LrcTimestamp.Zero;
         LrcLine line = new LrcEnhancedLine
         {
-            Timestamps = [t],
+            Timestamp = t,
             Words = [new(t, "hello "), new(t, "world")],
         };
         line.GetText().ShouldBe("hello world");
@@ -149,7 +149,7 @@ public sealed class LrcDocumentExtensionsTests
     {
         LrcLine line = new LrcEnhancedLine
         {
-            Timestamps = [LrcTimestamp.Zero],
+            Timestamp = LrcTimestamp.Zero,
             Words = EquatableArray<LrcWord>.Empty,
         };
         line.GetText().ShouldBe(string.Empty);

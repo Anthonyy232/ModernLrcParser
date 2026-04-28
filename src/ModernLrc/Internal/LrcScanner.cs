@@ -9,10 +9,13 @@ namespace ModernLrc.Internal;
 internal ref partial struct LrcScanner
 {
     private LrcCursor _cursor;
-    private readonly LrcParseOptions _options;
     private readonly LrcDiagnosticEmitter _diag;
 
-    private readonly List<LrcLine> _lines = new();
+    /// <summary><see cref="long.MaxValue"/> when implausibility detection is disabled —
+    /// every timestamp then trivially fails the per-line compare without branching out.</summary>
+    private readonly long _implausibleTicks;
+
+    private readonly List<LrcLine> _lines;
     private readonly List<LrcTag> _rawTags = new();
     // Scratch lists reused across ScanLine / ScanEnhancedWords calls — Clear() between lines
     // instead of allocating a fresh List per line. ImmutableArray.CreateRange copies out, so
@@ -41,8 +44,20 @@ internal ref partial struct LrcScanner
     public LrcScanner(ReadOnlySpan<char> source, LrcParseOptions options, LrcDiagnosticEmitter emitter)
     {
         _cursor = new LrcCursor(source);
-        _options = options;
         _diag = emitter;
+
+        _implausibleTicks = options.ImplausibleTimestampThreshold > TimeSpan.Zero
+            ? options.ImplausibleTimestampThreshold.Ticks
+            : long.MaxValue;
+
+        // Length heuristic: ~30 chars/line is typical; floor at 4 to match List<T>'s default growth step.
+        int estimatedLines = source.Length switch
+        {
+            < 64 => 4,
+            < 4096 => source.Length / 24,
+            _ => source.Length / 30,
+        };
+        _lines = new List<LrcLine>(estimatedLines);
     }
 
     /// <summary>Run the scanner over the entire source and return a <see cref="LrcParseResult"/>.</summary>
@@ -62,7 +77,7 @@ internal ref partial struct LrcScanner
         {
             _diag.Emit(LrcDiagnosticSeverity.Info, LrcDiagnosticIds.LinesReordered,
                 line: 1, column: 1, length: 0,
-                "Lines were reordered to maintain ascending-by-first-timestamp guarantee.");
+                "Lines were reordered to maintain ascending-by-timestamp guarantee.");
         }
 
         var metadata = new LrcMetadata

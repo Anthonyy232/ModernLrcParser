@@ -16,6 +16,11 @@ public sealed class AdditionalCoverageTests
     [Fact]
     public void MultiTimestamp_VoicePropagation_Roundtrip()
     {
+        // The 01s/05s multi-timestamp group is split by intervening 02s and 03s lines.
+        // Under the single-timestamp model, fan-out + sort interleaves them — so the writer's
+        // adjacent-only run-collapse cannot re-fold 01s and 05s together. This is an explicit
+        // round-trip behavior change vs. the old multi-timestamp model: scattered groups become
+        // independent lines. (Adjacent groups still round-trip identically; see SimpleWriteTests.)
         const string input =
             "[00:01.00][00:05.00]F: she sings\n" +
             "[00:02.00]still hers\n" +
@@ -25,19 +30,28 @@ public sealed class AdditionalCoverageTests
         string written = LrcWriter.Write(doc);
         var reparsed = LrcParser.Parse(written).Document;
 
-        // Lines are sorted by first timestamp; F/female line keeps both timestamps.
-        var first = (LrcPlainLine)reparsed.Lines[0];
-        first.Timestamps.Count.ShouldBe(2);
-        first.EffectiveVoice.ShouldBe(LrcVoice.Female);
-        first.Text.ShouldBe("she sings");
+        // Sorted by timestamp: 01s "she sings", 02s "still hers", 03s "now him", 05s "she sings".
+        reparsed.Lines.Count.ShouldBe(4);
 
-        // Voice propagates to "still hers".
-        var second = (LrcPlainLine)reparsed.Lines[1];
-        second.EffectiveVoice.ShouldBe(LrcVoice.Female);
+        var l0 = (LrcPlainLine)reparsed.Lines[0];
+        l0.Timestamp.TotalMilliseconds.ShouldBe(1_000);
+        l0.Text.ShouldBe("she sings");
+        l0.EffectiveVoice.ShouldBe(LrcVoice.Female);
 
-        // Male marker on third.
-        var third = (LrcPlainLine)reparsed.Lines[2];
-        third.EffectiveVoice.ShouldBe(LrcVoice.Male);
+        var l1 = (LrcPlainLine)reparsed.Lines[1];
+        l1.Timestamp.TotalMilliseconds.ShouldBe(2_000);
+        l1.Text.ShouldBe("still hers");
+        l1.EffectiveVoice.ShouldBe(LrcVoice.Female);
+
+        var l2 = (LrcPlainLine)reparsed.Lines[2];
+        l2.Timestamp.TotalMilliseconds.ShouldBe(3_000);
+        l2.Text.ShouldBe("now him");
+        l2.EffectiveVoice.ShouldBe(LrcVoice.Male);
+
+        var l3 = (LrcPlainLine)reparsed.Lines[3];
+        l3.Timestamp.TotalMilliseconds.ShouldBe(5_000);
+        l3.Text.ShouldBe("she sings");
+        l3.EffectiveVoice.ShouldBe(LrcVoice.Female);
     }
 
     [Fact]
@@ -229,7 +243,7 @@ public sealed class AdditionalCoverageTests
             .AddLine("00:01.00", "a")
             .Build();
 
-        // Whatever order the caller hands us, Build's output is sorted by first timestamp.
+        // Whatever order the caller hands us, Build's output is sorted by timestamp.
         for (int i = 0; i < sortedDoc.Lines.Count; i++)
         {
             ((LrcPlainLine)sortedDoc.Lines[i]).Text
@@ -308,12 +322,12 @@ public sealed class AdditionalCoverageTests
     }
 
     [Fact]
-    public void Builder_AddEnhancedLine_MultiTimestampSpanOverload_RejectsNullText()
+    public void Builder_AddEnhancedLineGroup_RejectsNullText()
     {
         var b = new LrcDocumentBuilder();
         var t = LrcTimestamp.Zero;
         var words = new[] { new LrcWord(t, "ok"), default };
         Should.Throw<ArgumentException>(() =>
-            b.AddEnhancedLine(new[] { t }.AsSpan(), (ReadOnlySpan<LrcWord>)words));
+            b.AddEnhancedLineGroup(new[] { t }.AsSpan(), (ReadOnlySpan<LrcWord>)words));
     }
 }

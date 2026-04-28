@@ -34,7 +34,7 @@ public sealed class TolerantVariantTests
         result.HasErrors.ShouldBeFalse();
         result.Diagnostics.ShouldContain(d => d.Code == LrcDiagnosticIds.NonStandardTimestamp);
         result.Document.Lines.Count.ShouldBe(1);
-        ((long)((LrcPlainLine)result.Document.Lines[0]).Timestamps[0].TotalMilliseconds).ShouldBe(expectedMs);
+        ((long)((LrcPlainLine)result.Document.Lines[0]).Timestamp.TotalMilliseconds).ShouldBe(expectedMs);
     }
 
     [Theory]
@@ -46,6 +46,6 @@ public sealed class TolerantVariantTests
         result.HasErrors.ShouldBeFalse();
         result.Diagnostics.ShouldContain(d => d.Code == LrcDiagnosticIds.NonStandardTimestamp);
         result.Document.Lines.Count.ShouldBe(1);
-        ((long)((LrcPlainLine)result.Document.Lines[0]).Timestamps[0].TotalMilliseconds).ShouldBe(expectedMs);
+        ((long)((LrcPlainLine)result.Document.Lines[0]).Timestamp.TotalMilliseconds).ShouldBe(expectedMs);
     }
 }

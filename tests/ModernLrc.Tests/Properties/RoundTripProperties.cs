@@ -23,7 +23,7 @@ public sealed class RoundTripProperties
                 if (parsed.HasErrors) return false;
                 if (parsed.Document.Lines.Count != 1) return false;
                 var line = (LrcPlainLine)parsed.Document.Lines[0];
-                return line.Text == text && line.Timestamps[0] == ts;
+                return line.Text == text && line.Timestamp == ts;
             }, iter: 1000);
     }
 

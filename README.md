@@ -97,6 +97,74 @@ Beyond the canonical `[mm:ss.xx]`, the parser accepts these in tolerant mode (th
 
 Set `LrcParseOptions.Strictness = LrcStrictness.Strict` to throw `LrcParseException` on the first error-severity diagnostic. Tolerant mode collects everything for inspection on `LrcParseResult.Diagnostics`.
 
+## Comparison
+
+ModernLrc compared to other .NET LRC parsers as of 2026-04-27.
+
+### Performance
+
+Throughput on synthetic basic-LRC inputs (Small ≈ 20 lines, Medium ≈ 200 lines, Large ≈ 2,000 lines). Lower is better. Ratio is relative to ModernLrc.
+
+#### Parse
+
+| Library                          | Small (µs)     | Medium (µs)    | Large (µs)       | Large alloc |
+|----------------------------------|---------------:|---------------:|-----------------:|------------:|
+| **ModernLrc 1.1.0**              | **1.94 (1.00×)** | **16.0 (1.00×)** | **158 (1.00×)**     | **324 KB**  |
+| Opportunity.LrcParser 1.0.4      | 1.86 (0.96×) | 12.4 (0.77×) | 117 (0.74×) | 317 KB |
+| Kfstorm.LrcParser 1.0.3          | 12.8 (6.57×) | 107 (6.70×) | 1,054 (6.68×) | 2,156 KB |
+| LrcParser 2025.623.0 (karaoke-dev) | 23.1 (11.9×) | 229 (14.3×) | 2,397 (15.2×) | 5,434 KB |
+| SharpLyrics 1.0.0.2 (archived)   | 194 (99.8×) | 287 (17.9×) | 1,121 (7.11×) | 2,252 KB |
+
+#### Write
+
+| Library                          | Small (µs)     | Medium (µs)    | Large (µs)       | Large alloc |
+|----------------------------------|---------------:|---------------:|-----------------:|------------:|
+| **ModernLrc 1.1.0**              | **2.57 (1.00×)** | **26.4 (1.00×)** | **423 (1.00×)**     | **399 KB**  |
+| Opportunity.LrcParser 1.0.4      | 3.13 (1.22×) | 31.3 (1.19×) | 456 (1.08×) | 648 KB |
+| LrcParser 2025.623.0 (karaoke-dev) | 5.26 (2.04×) | 57.1 (2.17×) | 745 (1.77×) | 2,013 KB |
+| Kfstorm.LrcParser 1.0.3          | — | — | — | (no write API) |
+| SharpLyrics 1.0.0.2 (archived)   | — | — | — | (no write API) |
+
+ModernLrc is essentially tied with Opportunity.LrcParser on small inputs (~4%) and trails by 25–35% on larger inputs; the gap is the cost of its broader feature surface (recovery, structured diagnostics, voice tracking, encoding detection, word-level timing, stable sort with reorder detection). Allocation is within 2% across all sizes. ModernLrc leads on write across every input size, despite emitting consecutive same-text lines as a collapsed `[t1][t2]text` group by default.
+
+### Features
+
+| Capability                              | ModernLrc | Opportunity | karaoke-dev | Kfstorm | SharpLyrics |
+|-----------------------------------------|:---------:|:-----------:|:-----------:|:-------:|:-----------:|
+| Basic LRC `[mm:ss.xx]text`              |    ✓     |     ✓       |     ✓       |    ✓    |     ✓       |
+| Enhanced LRC (word-level `<…>`)         |    ✓     |     ✗       |     ✓       |    ✗    |   partial¹  |
+| Walaoke voice markers (`M:`/`F:`/`D:`)  |    ✓     |  partial²   |     ✗       |    ✗    |     ✗       |
+| ID3 metadata tags (`ti`, `ar`, `al`, …) |    ✓     |     ✓       |     ✓       |    ✓    |     ✗       |
+| `[offset:N]` semantics                  |    ✓     |     ✓       |     ✗       |    ✓    |     ✗       |
+| ID3-style language prefix (`eng\|\|…`)  |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Error recovery (continue past bad input)|    ✓     |  partial³   |     ✗       |    ✗    |     ✗       |
+| Structured diagnostics with line/column |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Strict / lenient parse modes            |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Round-trip parse → write → parse        |    ✓     |     ✓       |     ✓       |    ✗    |     ✗       |
+| Sync write API                          |    ✓     |     ✓       |     ✓       |    ✗    |     ✗       |
+| Async parse / write                     |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Byte / `Stream` input + encoding detect |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| `IBufferWriter<byte/char>` output       |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| `TryParse` / `TryWrite` non-throwing    |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Span-first parser (no regex)            |    ✓     |     ✓       |     ✗       |    ✗    |     ✗       |
+| Native AOT compatible                   |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Trim-safe                               |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
+| Nullable reference types                |    ✓     |     ✗       |     ✓       |    ✗    |     ✓       |
+| Target framework                        |  net10.0 | netstandard1.0 | netstandard2.1 | portable PCL | netstandard2.0 |
+| Last release                            |  2026-04 |  2018-05    |  2025-06    | 2015-06 | 2023-11 (archived) |
+
+¹ SharpLyrics has internal word-time extraction, but the public API surfaces only single-timestamp lines from a file path — no string input.
+² Opportunity.LrcParser exposes `LineWithSpeaker` for `Speaker: text` patterns, not the Walaoke `M:`/`F:`/`D:` voice protocol with state propagation.
+³ Opportunity.LrcParser collects parse exceptions in a list, but they are unstructured (no diagnostic codes or severity).
+
+### Methodology
+
+- Workload: synthetic basic-LRC inputs (`[mm:ss.xx]text` + ID3 metadata header), `Small` ≈ 20 lines, `Medium` ≈ 200 lines, `Large` ≈ 2,000 lines. Inputs are stored as `string` constants — no file I/O on the timed path. SharpLyrics requires a file path, so its corpus is staged to a temp file in `[GlobalSetup]` (one-time cost outside the timed region).
+- Each parser called via the smallest possible idiomatic public entry point — no tuning.
+- Write benchmarks start from each library's own parsed model (parsed once in `[GlobalSetup]`) so the timed region measures serialisation only, not cross-model conversion.
+- Environment: BenchmarkDotNet 0.15.8, .NET 10.0.7 (SDK 10.0.202), Windows 11, AMD Ryzen 5 5600 (6 cores, 12 threads).
+- Numbers will drift across machines and SDK versions — treat ratios as the reliable signal, absolute numbers as a snapshot of one machine on one day.
+
 ## Tools
 
 ### Sample CLI

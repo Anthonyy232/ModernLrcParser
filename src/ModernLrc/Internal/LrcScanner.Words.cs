@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using ModernLrc.Diagnostics;
 using ModernLrc.Model;
@@ -36,18 +35,13 @@ internal ref partial struct LrcScanner
         {
             // No '<' at all — degenerate "enhanced" line (called from Lines.cs which saw a '<'
             // that disappeared after voice-marker consumption or trimming). Promote to plain line.
-            _lines.Add(new LrcPlainLine
-            {
-                Timestamps = ImmutableArray.Create(CollectionsMarshal.AsSpan(lineStamps)),
-                Text = contentToEol.ToString(),
-                EffectiveVoice = _currentVoice,
-            });
+            EmitPlainFanOut(contentToEol.ToString(), lineStamps);
             _cursor.Position += contentToEol.Length;
             _cursor.ConsumeLineTerminator();
             return;
         }
 
-        // Text before the first '<' is attached as a word anchored at the line timestamp.
+        // Text before the first '<' is attached as a word anchored at the first line timestamp.
         if (firstLt > 0)
         {
             var leading = contentToEol[..firstLt];
@@ -74,7 +68,7 @@ internal ref partial struct LrcScanner
             }
 
             var inside = _cursor.Slice(closeIdx - _cursor.Position);
-            if (inside.IsEmpty || !LrcTimestamp.TryParse(inside, CultureInfo.InvariantCulture, out var ts))
+            if (inside.IsEmpty || !LrcTimestamp.TryParseWithShape(inside, out var shape))
             {
                 _diag.Emit(LrcDiagnosticSeverity.Error, LrcDiagnosticIds.InvalidEnhancedTimestamp,
                     openLine, openColumn, closeIdx - _cursor.Position + 2,
@@ -82,10 +76,7 @@ internal ref partial struct LrcScanner
                 _cursor.Position = closeIdx + 1;
                 continue;
             }
-            // LRC0031: input had sub-millisecond precision that was truncated.
-            // Reuses ScanTimestampShape so '.', ',', and colon-fraction separators all count.
-            _ = ScanTimestampShape(inside, out int fractionLength);
-            if (fractionLength > 3)
+            if (shape.FractionLength > 3)
             {
                 _diag.Emit(LrcDiagnosticSeverity.Info, LrcDiagnosticIds.TruncatedPrecision,
                     openLine, openColumn, inside.Length + 2,
@@ -93,12 +84,11 @@ internal ref partial struct LrcScanner
             }
             _cursor.Position = closeIdx + 1;
 
-            // Word text = verbatim from here to next '<' or EOL.
             int restEol = _cursor.IndexOfLineEnd();
             var rest = StripTrailingCr(_cursor.Slice(restEol - _cursor.Position));
             int nextLt = rest.IndexOf('<');
             ReadOnlySpan<char> wordText = nextLt < 0 ? rest : rest[..nextLt];
-            words.Add(new LrcWord(ts, wordText.ToString()));
+            words.Add(new LrcWord(shape.Value, wordText.ToString()));
             _cursor.Position += wordText.Length;
         }
 
@@ -112,23 +102,37 @@ internal ref partial struct LrcScanner
             _cursor.Position = originalPosition;
             int fallbackEol = _cursor.IndexOfLineEnd();
             var verbatim = StripTrailingCr(_cursor.Slice(fallbackEol - _cursor.Position));
-            _lines.Add(new LrcPlainLine
-            {
-                Timestamps = ImmutableArray.Create(CollectionsMarshal.AsSpan(lineStamps)),
-                Text = verbatim.ToString(),
-                EffectiveVoice = _currentVoice,
-            });
+            EmitPlainFanOut(verbatim.ToString(), lineStamps);
             _cursor.Position = originalPosition + verbatim.Length;
             _cursor.ConsumeLineTerminator();
             return;
         }
 
-        _lines.Add(new LrcEnhancedLine
+        var wordsArray = ImmutableArray.Create(CollectionsMarshal.AsSpan(words));
+        for (int i = 0; i < lineStamps.Count; i++)
         {
-            Timestamps = ImmutableArray.Create(CollectionsMarshal.AsSpan(lineStamps)),
-            Words = ImmutableArray.Create(CollectionsMarshal.AsSpan(words)),
-            EffectiveVoice = _currentVoice,
-        });
+            _lines.Add(new LrcEnhancedLine
+            {
+                Timestamp = lineStamps[i],
+                Words = wordsArray,
+                EffectiveVoice = _currentVoice,
+            });
+        }
         _cursor.ConsumeLineTerminator();
+    }
+
+    /// <summary>Emit one <see cref="LrcPlainLine"/> per timestamp in <paramref name="stamps"/>,
+    /// each sharing the same <paramref name="text"/> reference.</summary>
+    private void EmitPlainFanOut(string text, List<LrcTimestamp> stamps)
+    {
+        for (int i = 0; i < stamps.Count; i++)
+        {
+            _lines.Add(new LrcPlainLine
+            {
+                Timestamp = stamps[i],
+                Text = text,
+                EffectiveVoice = _currentVoice,
+            });
+        }
     }
 }

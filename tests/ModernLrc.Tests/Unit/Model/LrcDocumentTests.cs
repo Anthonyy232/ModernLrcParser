@@ -22,7 +22,7 @@ public sealed class LrcDocumentTests
             Metadata = new LrcMetadata { Title = "X" },
             Lines =
             [
-                new LrcPlainLine { Timestamps = [t], Text = "hello" },
+                new LrcPlainLine { Timestamp = t, Text = "hello" },
             ],
         };
         doc.Metadata.Title.ShouldBe("X");
@@ -36,12 +36,12 @@ public sealed class LrcDocumentTests
         var a = new LrcDocument
         {
             Metadata = new LrcMetadata { Title = "X" },
-            Lines = [new LrcPlainLine { Timestamps = [t], Text = "a" }],
+            Lines = [new LrcPlainLine { Timestamp = t, Text = "a" }],
         };
         var b = new LrcDocument
         {
             Metadata = new LrcMetadata { Title = "X" },
-            Lines = [new LrcPlainLine { Timestamps = [t], Text = "a" }],
+            Lines = [new LrcPlainLine { Timestamp = t, Text = "a" }],
         };
         a.ShouldBe(b);
         a.GetHashCode().ShouldBe(b.GetHashCode());

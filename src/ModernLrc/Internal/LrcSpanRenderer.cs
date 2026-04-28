@@ -164,65 +164,67 @@ internal static class LrcSpanRenderer
         ReadOnlySpan<char> tsFormat = options.TimestampPrecision == LrcTimestampPrecision.Milliseconds
             ? "F" : "G";
 
-        // Two iteration paths:
-        // - Non-collapse: span enumeration over the underlying ImmutableArray<LrcLine> avoids
-        //   the boxed IEnumerator<LrcLine> that an IEnumerable cast would allocate.
-        // - Collapse: must iterate via IEnumerable to use the existing CollapseIdentical state
-        //   machine. The boxing cost is unavoidable on this path.
+        var lines = document.Lines.AsSpan();
+
         if (!options.CollapseIdenticalLines)
         {
             bool first = true;
-            foreach (var line in document.Lines.AsSpan())
+            foreach (var line in lines)
             {
                 if (!first) w.Append(lineEnding);
                 first = false;
-                RenderLineChars(line, ref w, options, tsFormat, ref lastVoice);
+                AppendTimestampChars(ref w, line.Timestamp, tsFormat);
+                AppendVoiceMarkerChars(ref w, line, options, ref lastVoice);
+                AppendBodyChars(ref w, line, tsFormat);
             }
         }
         else
         {
+            // Walk consecutive same-content lines as one group, emit all their timestamps
+            // before the shared body. Inverse of the parser's fan-out for [t1][t2]text groups.
             bool first = true;
-            foreach (var line in CollapseIdentical(document.Lines))
+            int i = 0;
+            while (i < lines.Length)
             {
+                int j = i + 1;
+                while (j < lines.Length && CanCollapse(lines[i], lines[j])) j++;
                 if (!first) w.Append(lineEnding);
                 first = false;
-                RenderLineChars(line, ref w, options, tsFormat, ref lastVoice);
+                for (int k = i; k < j; k++)
+                    AppendTimestampChars(ref w, lines[k].Timestamp, tsFormat);
+                AppendVoiceMarkerChars(ref w, lines[i], options, ref lastVoice);
+                AppendBodyChars(ref w, lines[i], tsFormat);
+                i = j;
             }
         }
     }
 
-    private static void RenderLineChars(LrcLine line, ref CharBufferWriter w,
-        LrcWriteOptions options, ReadOnlySpan<char> tsFormat, ref LrcVoice lastVoice)
+    private static void AppendTimestampChars(ref CharBufferWriter w, LrcTimestamp ts, ReadOnlySpan<char> tsFormat)
     {
-        // Timestamps
-        foreach (var ts in line.Timestamps)
-        {
-            w.Append('[');
-            w.AppendInvariant(ts, tsFormat);
-            w.Append(']');
-        }
+        w.Append('[');
+        w.AppendInvariant(ts, tsFormat);
+        w.Append(']');
+    }
 
-        // Voice marker
-        if (options.EmitVoiceMarkers && line.EffectiveVoice != LrcVoice.Default)
+    private static void AppendVoiceMarkerChars(ref CharBufferWriter w, LrcLine line,
+        LrcWriteOptions options, ref LrcVoice lastVoice)
+    {
+        if (!options.EmitVoiceMarkers || line.EffectiveVoice == LrcVoice.Default) return;
+        if (options.VoiceMarkerOnChangeOnly && line.EffectiveVoice == lastVoice) return;
+        char marker = line.EffectiveVoice switch
         {
-            if (!options.VoiceMarkerOnChangeOnly || line.EffectiveVoice != lastVoice)
-            {
-                char marker = line.EffectiveVoice switch
-                {
-                    LrcVoice.Male => 'M',
-                    LrcVoice.Female => 'F',
-                    LrcVoice.Duet => 'D',
-                    _ => '\0',
-                };
-                if (marker != '\0')
-                {
-                    w.Append(marker); w.Append(':'); w.Append(' ');
-                    lastVoice = line.EffectiveVoice;
-                }
-            }
-        }
+            LrcVoice.Male => 'M',
+            LrcVoice.Female => 'F',
+            LrcVoice.Duet => 'D',
+            _ => '\0',
+        };
+        if (marker == '\0') return;
+        w.Append(marker); w.Append(':'); w.Append(' ');
+        lastVoice = line.EffectiveVoice;
+    }
 
-        // Content
+    private static void AppendBodyChars(ref CharBufferWriter w, LrcLine line, ReadOnlySpan<char> tsFormat)
+    {
         switch (line)
         {
             case LrcPlainLine plain:
@@ -385,62 +387,65 @@ internal static class LrcSpanRenderer
         ReadOnlySpan<char> tsFormat = options.TimestampPrecision == LrcTimestampPrecision.Milliseconds
             ? "F" : "G";
 
-        // Span enumeration on the no-collapse path avoids the boxed IEnumerator<LrcLine>
-        // that would otherwise be allocated by the IEnumerable cast.
+        var lines = document.Lines.AsSpan();
+
         if (!options.CollapseIdenticalLines)
         {
             bool first = true;
-            foreach (var line in document.Lines.AsSpan())
+            foreach (var line in lines)
             {
                 if (!first) w.Append(lineEnding);
                 first = false;
-                RenderLineUtf8(line, ref w, options, tsFormat, ref lastVoice);
+                AppendTimestampUtf8(ref w, line.Timestamp, tsFormat);
+                AppendVoiceMarkerUtf8(ref w, line, options, ref lastVoice);
+                AppendBodyUtf8(ref w, line, tsFormat);
             }
         }
         else
         {
             bool first = true;
-            foreach (var line in CollapseIdentical(document.Lines))
+            int i = 0;
+            while (i < lines.Length)
             {
+                int j = i + 1;
+                while (j < lines.Length && CanCollapse(lines[i], lines[j])) j++;
                 if (!first) w.Append(lineEnding);
                 first = false;
-                RenderLineUtf8(line, ref w, options, tsFormat, ref lastVoice);
+                for (int k = i; k < j; k++)
+                    AppendTimestampUtf8(ref w, lines[k].Timestamp, tsFormat);
+                AppendVoiceMarkerUtf8(ref w, lines[i], options, ref lastVoice);
+                AppendBodyUtf8(ref w, lines[i], tsFormat);
+                i = j;
             }
         }
     }
 
-    private static void RenderLineUtf8(LrcLine line, ref Utf8BufferWriter w,
-        LrcWriteOptions options, ReadOnlySpan<char> tsFormat, ref LrcVoice lastVoice)
+    private static void AppendTimestampUtf8(ref Utf8BufferWriter w, LrcTimestamp ts, ReadOnlySpan<char> tsFormat)
     {
-        // Timestamps
-        foreach (var ts in line.Timestamps)
-        {
-            w.Append((byte)'[');
-            w.AppendInvariant(ts, tsFormat);
-            w.Append((byte)']');
-        }
+        w.Append((byte)'[');
+        w.AppendInvariant(ts, tsFormat);
+        w.Append((byte)']');
+    }
 
-        // Voice marker
-        if (options.EmitVoiceMarkers && line.EffectiveVoice != LrcVoice.Default)
+    private static void AppendVoiceMarkerUtf8(ref Utf8BufferWriter w, LrcLine line,
+        LrcWriteOptions options, ref LrcVoice lastVoice)
+    {
+        if (!options.EmitVoiceMarkers || line.EffectiveVoice == LrcVoice.Default) return;
+        if (options.VoiceMarkerOnChangeOnly && line.EffectiveVoice == lastVoice) return;
+        byte marker = line.EffectiveVoice switch
         {
-            if (!options.VoiceMarkerOnChangeOnly || line.EffectiveVoice != lastVoice)
-            {
-                byte marker = line.EffectiveVoice switch
-                {
-                    LrcVoice.Male => (byte)'M',
-                    LrcVoice.Female => (byte)'F',
-                    LrcVoice.Duet => (byte)'D',
-                    _ => 0,
-                };
-                if (marker != 0)
-                {
-                    w.Append(marker); w.Append((byte)':'); w.Append((byte)' ');
-                    lastVoice = line.EffectiveVoice;
-                }
-            }
-        }
+            LrcVoice.Male => (byte)'M',
+            LrcVoice.Female => (byte)'F',
+            LrcVoice.Duet => (byte)'D',
+            _ => 0,
+        };
+        if (marker == 0) return;
+        w.Append(marker); w.Append((byte)':'); w.Append((byte)' ');
+        lastVoice = line.EffectiveVoice;
+    }
 
-        // Content
+    private static void AppendBodyUtf8(ref Utf8BufferWriter w, LrcLine line, ReadOnlySpan<char> tsFormat)
+    {
         switch (line)
         {
             case LrcPlainLine plain:
@@ -527,31 +532,9 @@ internal static class LrcSpanRenderer
         return count;
     }
 
-    /// <summary>Stream-fold consecutive identical lines (same type, voice, and content) into
-    /// a single multi-timestamp line. Driven by <see cref="LrcWriteOptions.CollapseIdenticalLines"/>.</summary>
-    internal static IEnumerable<LrcLine> CollapseIdentical(IEnumerable<LrcLine> source)
-    {
-        LrcLine? buffered = null;
-        foreach (var line in source)
-        {
-            if (buffered is null)
-            {
-                buffered = line;
-                continue;
-            }
-            if (CanCollapse(buffered, line))
-            {
-                buffered = MergeTimestamps(buffered, line);
-            }
-            else
-            {
-                yield return buffered;
-                buffered = line;
-            }
-        }
-        if (buffered is not null) yield return buffered;
-    }
-
+    /// <summary>True when two consecutive lines (already sorted by timestamp) carry identical
+    /// content and voice — i.e., the input was a <c>[t1][t2]text</c> group that the parser
+    /// fanned out into separate lines. Used by the run-collapse rendering path to re-fold them.</summary>
     private static bool CanCollapse(LrcLine a, LrcLine b)
     {
         if (a.GetType() != b.GetType()) return false;
@@ -559,20 +542,19 @@ internal static class LrcSpanRenderer
         return (a, b) switch
         {
             (LrcPlainLine pa, LrcPlainLine pb) =>
-                string.Equals(pa.Text, pb.Text, StringComparison.Ordinal),
-            (LrcEnhancedLine ea, LrcEnhancedLine eb) => ea.Words.Equals(eb.Words),
+                ReferenceEquals(pa.Text, pb.Text) || string.Equals(pa.Text, pb.Text, StringComparison.Ordinal),
+            // Parser-emitted fan-out shares the same backing array, so reference equality on the
+            // underlying ImmutableArray<LrcWord> hits 99% of real cases without an O(n) SequenceEqual.
+            (LrcEnhancedLine ea, LrcEnhancedLine eb) =>
+                ReferenceEqualWords(ea.Words, eb.Words) || ea.Words.Equals(eb.Words),
             _ => false,
         };
     }
 
-    private static LrcLine MergeTimestamps(LrcLine a, LrcLine b)
+    private static bool ReferenceEqualWords(EquatableArray<LrcWord> a, EquatableArray<LrcWord> b)
     {
-        var merged = a.Timestamps.AsImmutableArray().AddRange(b.Timestamps.AsImmutableArray());
-        return a switch
-        {
-            LrcPlainLine p => p with { Timestamps = merged },
-            LrcEnhancedLine e => e with { Timestamps = merged },
-            _ => a,
-        };
+        var aRaw = System.Runtime.InteropServices.ImmutableCollectionsMarshal.AsArray(a.AsImmutableArray());
+        var bRaw = System.Runtime.InteropServices.ImmutableCollectionsMarshal.AsArray(b.AsImmutableArray());
+        return aRaw is not null && ReferenceEquals(aRaw, bRaw);
     }
 }

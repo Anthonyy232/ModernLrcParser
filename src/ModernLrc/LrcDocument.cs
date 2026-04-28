@@ -2,7 +2,7 @@ using ModernLrc.Model;
 
 namespace ModernLrc;
 
-/// <summary>Root model: metadata block + sorted-by-first-timestamp lines.
+/// <summary>Root model: metadata block + sorted-by-timestamp lines.
 /// The parser and <see cref="LrcDocumentBuilder"/> maintain the sort guarantee;
 /// the type itself does not validate ordering on assignment.</summary>
 /// <remarks><para>Documents are immutable records — use <c>with</c> expressions or
@@ -17,7 +17,7 @@ public sealed record LrcDocument
     /// <summary>Document metadata (default: <see cref="LrcMetadata.Empty"/>).</summary>
     public LrcMetadata Metadata { get; init; } = LrcMetadata.Empty;
 
-    /// <summary>Lyric lines, sorted ascending by first timestamp. Sort guarantee is supplied
+    /// <summary>Lyric lines, sorted ascending by timestamp. Sort guarantee is supplied
     /// by the parser and by <see cref="LrcDocumentBuilder.Build"/>; constructing a document
     /// directly bypasses that check.</summary>
     public EquatableArray<LrcLine> Lines { get; init; } = EquatableArray<LrcLine>.Empty;

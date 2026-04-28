@@ -2,6 +2,11 @@ using System.Globalization;
 
 namespace ModernLrc.Model;
 
+/// <summary>Side-output of <see cref="LrcTimestamp.TryParseWithShape"/> — the parsed value
+/// plus the shape information the scanner uses to drive its <c>LRC0030</c> /
+/// <c>LRC0031</c> diagnostics without re-walking the input.</summary>
+internal readonly record struct LrcTimestampShape(LrcTimestamp Value, bool IsCanonical, int FractionLength);
+
 public readonly partial struct LrcTimestamp
 {
     /// <summary>Parse <c>"mm:ss.xx"</c>, <c>"mm:ss.xxx"</c>, <c>"mm:ss"</c>, or <c>"mm:ss:xx"</c>.
@@ -30,9 +35,26 @@ public readonly partial struct LrcTimestamp
     /// <summary>Try-parse a span (canonical core).</summary>
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out LrcTimestamp result)
     {
+        if (TryParseWithShape(s, out var shape))
+        {
+            result = shape.Value;
+            return true;
+        }
         result = default;
+        return false;
+    }
+
+    /// <summary>Try-parse a span and emit shape info alongside the value, so the scanner
+    /// can drive its <c>LRC0030</c> / <c>LRC0031</c> diagnostics without a second pass.</summary>
+    internal static bool TryParseWithShape(ReadOnlySpan<char> s, out LrcTimestampShape shape)
+    {
+        shape = default;
         if (s.IsEmpty) return false;
         if (s[0] == '-') return false;
+
+        bool isCanonical = false;
+        int fractionLength = -1;
+        LrcTimestamp result;
 
         int colon1 = s.IndexOf(':');
         if (colon1 <= 0) return false;
@@ -49,9 +71,13 @@ public readonly partial struct LrcTimestamp
             // Only try hours form when the first segment is non-zero.
             bool firstNonZero = false;
             for (int i = 0; i < colon1; i++) { if (s[i] != '0') { firstNonZero = true; break; } }
-            if (firstNonZero && TryParseHoursMinutesSeconds(s, colon1, out result))
+            if (firstNonZero && TryParseHoursMinutesSeconds(s, colon1, out result, out fractionLength))
+            {
+                // Hours form is never canonical mm:ss.xx.
+                shape = new LrcTimestampShape(result, IsCanonical: false, fractionLength);
                 return true;
-            // Fall through to default parse if the three-segment shape didn't produce a valid value.
+            }
+            fractionLength = -1;
         }
 
         if (!long.TryParse(s[..colon1], NumberStyles.None, CultureInfo.InvariantCulture, out long minutes))
@@ -66,6 +92,7 @@ public readonly partial struct LrcTimestamp
         int sepIdx = rest.IndexOfAny('.', ':', ',');
         ReadOnlySpan<char> secondsSpan;
         ReadOnlySpan<char> fractionSpan = default;
+        char fractionSeparator = '\0';
         if (sepIdx < 0)
         {
             secondsSpan = rest;
@@ -73,6 +100,7 @@ public readonly partial struct LrcTimestamp
         else
         {
             secondsSpan = rest[..sepIdx];
+            fractionSeparator = rest[sepIdx];
             fractionSpan = rest[(sepIdx + 1)..];
             if (fractionSpan.IsEmpty) return false;
         }
@@ -90,6 +118,7 @@ public readonly partial struct LrcTimestamp
             if (frac < 0) return false;
 
             int len = fractionSpan.Length;
+            fractionLength = len;
             long fracTicks = len switch
             {
                 1 => frac * (TimeSpan.TicksPerSecond / 10),
@@ -101,6 +130,9 @@ public readonly partial struct LrcTimestamp
         }
 
         result = new LrcTimestamp(ticks);
+        // Canonical: 2-segment, '.' fraction separator, exactly 2 fractional digits.
+        isCanonical = fractionSeparator == '.' && fractionLength == 2;
+        shape = new LrcTimestampShape(result, isCanonical, fractionLength);
         return true;
     }
 
@@ -111,9 +143,10 @@ public readonly partial struct LrcTimestamp
         return (frac / divisor) * TimeSpan.TicksPerMillisecond;
     }
 
-    private static bool TryParseHoursMinutesSeconds(ReadOnlySpan<char> s, int colon1, out LrcTimestamp result)
+    private static bool TryParseHoursMinutesSeconds(ReadOnlySpan<char> s, int colon1, out LrcTimestamp result, out int fractionLength)
     {
         result = default;
+        fractionLength = -1;
         if (!long.TryParse(s[..colon1], NumberStyles.None, CultureInfo.InvariantCulture, out long hours))
             return false;
         if (hours < 0 || hours > 24L * 365 * 100) return false; // sanity cap
@@ -149,6 +182,7 @@ public readonly partial struct LrcTimestamp
                 return false;
             if (frac < 0) return false;
             int len = fractionSpan.Length;
+            fractionLength = len;
             long fracTicks = len switch
             {
                 1 => frac * (TimeSpan.TicksPerSecond / 10),

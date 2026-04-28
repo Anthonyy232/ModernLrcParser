@@ -13,7 +13,7 @@ public sealed class SimpleLrcParseTests
         result.Document.Lines.Count.ShouldBe(1);
         var line = (LrcPlainLine)result.Document.Lines[0];
         line.Text.ShouldBe("hello");
-        line.Timestamps[0].TotalMilliseconds.ShouldBe(1_000);
+        line.Timestamp.TotalMilliseconds.ShouldBe(1_000);
     }
 
     [Fact]

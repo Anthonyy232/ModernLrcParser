@@ -45,6 +45,7 @@ public sealed class CollapseTests
             .AddLine("00:01.00", "x")
             .AddLine("00:02.00", "x")
             .Build();
-        LrcWriter.Write(doc).ShouldBe("[00:01.00]x\n[00:02.00]x\n");
+        var options = new LrcWriteOptions { CollapseIdenticalLines = false };
+        LrcWriter.Write(doc, options).ShouldBe("[00:01.00]x\n[00:02.00]x\n");
     }
 }

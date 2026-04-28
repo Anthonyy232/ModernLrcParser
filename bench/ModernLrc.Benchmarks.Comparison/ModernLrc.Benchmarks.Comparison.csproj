@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ModernLrc.Benchmarks.Comparison</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <NoWarn>$(NoWarn);CS1591;CA1707;CA1822;CA2007;CA1303;CA1515;CS8600;CS8602;CS8603;CS8604;CS8618;IDE0005</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="Kfstorm.LrcParser" Version="1.0.3" />
+    <PackageReference Include="LrcParser" Version="2025.623.0" />
+    <PackageReference Include="Opportunity.LrcParser" Version="1.0.4" />
+    <PackageReference Include="SharpLyrics" Version="1.0.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ModernLrc\ModernLrc.csproj" />
+  </ItemGroup>
+
+</Project>

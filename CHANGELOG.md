@@ -6,6 +6,10 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [1.1.1] — 2026-04-30
 
+### Added
+
+- Added a `pre-commit` configuration with common hygiene hooks and `dotnet format`.
+
 ### Fixed
 
 - Stream parsing now honors the current `MemoryStream.Position` on the buffer

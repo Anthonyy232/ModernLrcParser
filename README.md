@@ -167,6 +167,15 @@ ModernLrc edges Opportunity.LrcParser on small inputs and trails by 19–27% on 
 
 ## Tools
 
+### Development hooks
+
+```sh
+pre-commit install
+pre-commit run --all-files
+```
+
+The hook set runs common file hygiene checks and `dotnet format`.
+
 ### Sample CLI
 
 ```

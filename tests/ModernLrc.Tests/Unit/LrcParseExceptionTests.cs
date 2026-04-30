@@ -23,7 +23,9 @@ public sealed class LrcParseExceptionTests
         {
             Severity = LrcDiagnosticSeverity.Error,
             Code = LrcDiagnosticIds.InvalidTimestamp,
-            Line = 1, Column = 2, Length = 3,
+            Line = 1,
+            Column = 2,
+            Length = 3,
             Message = "bad",
         };
         var partial = new LrcParseResult

@@ -9,12 +9,12 @@ namespace ModernLrc.Benchmarks;
 [BenchmarkCategory("Timestamp")]
 public class TimestampBenchmarks
 {
-    private const string Canonical    = "01:23.45";
-    private const string ThreeDigit   = "01:23.456";
-    private const string Hours        = "1:02:03.45";
+    private const string Canonical = "01:23.45";
+    private const string ThreeDigit = "01:23.456";
+    private const string Hours = "1:02:03.45";
     private const string CommaDecimal = "01:23,45";
-    private const string ColonFrac    = "01:23:45";
-    private const string NoFraction   = "01:23";
+    private const string ColonFrac = "01:23:45";
+    private const string NoFraction = "01:23";
 
     [Benchmark(Baseline = true)]
     public LrcTimestamp TryParse_Canonical()

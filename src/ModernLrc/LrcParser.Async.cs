@@ -83,7 +83,7 @@ public static partial class LrcParser
             var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
                 options.ReadBufferSize, FileOptions.Asynchronous);
             await using (fs.ConfigureAwait(false))
-            return await ParseAsync(fs, options, cancellationToken).ConfigureAwait(false);
+                return await ParseAsync(fs, options, cancellationToken).ConfigureAwait(false);
         }
         catch (LrcParseException ex) when (ex.FilePath is null)
         {

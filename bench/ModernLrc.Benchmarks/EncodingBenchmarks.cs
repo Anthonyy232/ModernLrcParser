@@ -22,9 +22,9 @@ public class EncodingBenchmarks
     public void Setup()
     {
         _utf8NoBom = Sources.BuildBytes(LineCount, Shape, new UTF8Encoding(false), bom: false);
-        _utf8Bom   = Sources.BuildBytes(LineCount, Shape, new UTF8Encoding(true),  bom: true);
-        _utf16Le   = Sources.BuildBytes(LineCount, Shape, Encoding.Unicode,        bom: true);
-        _utf16Be   = Sources.BuildBytes(LineCount, Shape, Encoding.BigEndianUnicode, bom: true);
+        _utf8Bom = Sources.BuildBytes(LineCount, Shape, new UTF8Encoding(true), bom: true);
+        _utf16Le = Sources.BuildBytes(LineCount, Shape, Encoding.Unicode, bom: true);
+        _utf16Be = Sources.BuildBytes(LineCount, Shape, Encoding.BigEndianUnicode, bom: true);
     }
 
     [Benchmark(Baseline = true)]

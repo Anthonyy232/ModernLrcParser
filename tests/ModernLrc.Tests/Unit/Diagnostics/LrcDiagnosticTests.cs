@@ -31,14 +31,18 @@ public sealed class LrcDiagnosticTests
         {
             Severity = LrcDiagnosticSeverity.Warning,
             Code = "LRC0005",
-            Line = 1, Column = 1, Length = 1,
+            Line = 1,
+            Column = 1,
+            Length = 1,
             Message = "x",
         };
         var b = new LrcDiagnostic
         {
             Severity = LrcDiagnosticSeverity.Warning,
             Code = "LRC0005",
-            Line = 1, Column = 1, Length = 1,
+            Line = 1,
+            Column = 1,
+            Length = 1,
             Message = "x",
         };
         a.ShouldBe(b);

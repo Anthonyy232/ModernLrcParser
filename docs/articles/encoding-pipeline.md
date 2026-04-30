@@ -82,5 +82,6 @@ UTF-8 *no BOM*) and
 (sole BOM control — set `true` to prepend the encoding's preamble; set `false`
 to skip it regardless of the encoding's natural BOM).
 
-When the encoding is UTF-8, the stream and `IBufferWriter<byte>` paths take a
-fast path that renders directly into bytes — no intermediate string allocation.
+Stream, `IBufferWriter<byte>`, and fixed `Span<byte>` outputs honor
+`LrcWriteOptions.Encoding`. When that encoding is UTF-8, those byte paths take
+a fast path that renders directly into bytes — no intermediate string allocation.

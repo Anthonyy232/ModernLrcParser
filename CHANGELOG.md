@@ -4,6 +4,20 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-04-30
+
+### Fixed
+
+- Stream parsing now honors the current `MemoryStream.Position` on the buffer
+  fast path and consumes the stream to its end, matching other stream inputs.
+- Strict parsing now still throws when an Error diagnostic is suppressed by
+  `MaxDiagnostics`, including `MaxDiagnostics = 0`.
+- `IBufferWriter<byte>` and fixed `Span<byte>` write paths now honor non-UTF-8
+  `LrcWriteOptions.Encoding` instead of writing a UTF-8 body after an arbitrary
+  preamble.
+- `LrcTimestamp.FromMilliseconds` now rejects values that would overflow the
+  non-negative tick invariant.
+
 ## [1.1.0] — 2026-04-28
 
 ### Changed (breaking)
@@ -28,5 +42,6 @@ Initial public release. Modern, AOT-compatible LRC (lyrics) parser/writer for
 Walaoke voice markers), tolerant-by-default with a stable diagnostic catalogue,
 sync + async overloads for every input shape, and zero-allocation writer paths.
 
+[1.1.1]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.0.0

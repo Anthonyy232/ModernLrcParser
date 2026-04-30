@@ -11,7 +11,7 @@ Modern, performance-first LRC (lyrics) parser and writer for .NET 10. AOT-compat
 - **Tolerant by default** with rich diagnostics; opt-in `LrcStrictness.Strict` for fail-fast behaviour.
 - **Span-first hand-rolled scanner** — no regex, no backtracking, zero per-token transient allocations.
 - **Every input shape** — `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, `ReadOnlySpan<byte>`, `byte[]`, `Stream`, file paths; sync and async.
-- **Zero-allocation writer** via `IBufferWriter<char>` / `IBufferWriter<byte>`; the `Write → string`, `TextWriter`, `TryWrite`, and `Stream` sinks pre-size their staging buffer to the document's estimated size so large renders don't accumulate copy-on-grow waste; atomic file write via temp + rename.
+- **Zero-allocation writer** via `IBufferWriter<char>` and UTF-8 byte sinks; the `Write → string`, `TextWriter`, `TryWrite`, and `Stream` sinks pre-size their staging buffer to the document's estimated size so large renders don't accumulate copy-on-grow waste; atomic file write via temp + rename.
 - **Encoding pipeline** — BOM detection (UTF-8, UTF-16 LE/BE) → caller override → UTF-8 validation → caller-supplied fallback.
 - **Diagnostics catalogue** — every recoverable concern surfaces as a stable diagnostic code (`LRC0001`–`LRC0099`) with line/column location.
 

@@ -39,6 +39,13 @@ public sealed class LrcTimestampTests
     }
 
     [Fact]
+    public void FromMilliseconds_TooLarge_Throws()
+    {
+        long tooLarge = long.MaxValue / TimeSpan.TicksPerMillisecond + 1;
+        Should.Throw<ArgumentOutOfRangeException>(() => LrcTimestamp.FromMilliseconds(tooLarge));
+    }
+
+    [Fact]
     public void FromTimeSpan_Negative_Throws()
     {
         Should.Throw<ArgumentOutOfRangeException>(() =>

@@ -44,7 +44,7 @@ string lrc = LrcWriter.Write(doc);
   allocations; SIMD-friendly hot path.
 - **Every input shape** — `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`,
   `TextReader`, `ReadOnlySpan<byte>`, `byte[]`, `Stream`, file paths; sync and async.
-- **Zero-allocation writer** via `IBufferWriter<char>` / `IBufferWriter<byte>`;
+- **Zero-allocation writer** via `IBufferWriter<char>` and UTF-8 byte sinks;
   `string.Create`-style single-allocation `Write → string`; atomic file write
   via temp + rename.
 - **Encoding pipeline** — BOM detection (UTF-8, UTF-16 LE/BE) → caller override →

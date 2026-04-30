@@ -53,4 +53,22 @@ public sealed class InputShapeTests
             if (File.Exists(tmp)) File.Delete(tmp);
         }
     }
+
+    [Fact]
+    public void Parse_FromMemoryStream_Sync_ConsumesFromCurrentPosition()
+    {
+        const string prefix = "[00:00.00]skip\n";
+        const string payload = "[00:01.00]keep";
+        var bytes = Encoding.UTF8.GetBytes(prefix + payload);
+        using var ms = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: true)
+        {
+            Position = Encoding.UTF8.GetByteCount(prefix),
+        };
+
+        var result = LrcParser.Parse(ms);
+
+        ms.Position.ShouldBe(ms.Length);
+        result.Document.Lines.Count.ShouldBe(1);
+        ((LrcPlainLine)result.Document.Lines[0]).Text.ShouldBe("keep");
+    }
 }

@@ -34,7 +34,11 @@ internal sealed class LrcDiagnosticEmitter
     /// <summary>Emit a diagnostic. Returns true when scanning should continue, false when Strict mode says bail.</summary>
     public bool Emit(LrcDiagnosticSeverity severity, string code, int line, int column, int length, string message)
     {
-        if (_capReached) return !IsStrict || severity != LrcDiagnosticSeverity.Error;
+        if (_capReached)
+        {
+            TrackStrictErrorIfNeeded(severity, code, line, column, length, message);
+            return !IsStrict || severity != LrcDiagnosticSeverity.Error;
+        }
 
         if (_items.Count >= _maxDiagnostics)
         {
@@ -55,31 +59,11 @@ internal sealed class LrcDiagnosticEmitter
             }
             // FirstError must still be tracked so Strict mode bails correctly even when
             // the cap suppresses the diagnostic body.
-            if (severity == LrcDiagnosticSeverity.Error && FirstError is null)
-            {
-                FirstError = new LrcDiagnostic
-                {
-                    Severity = severity,
-                    Code = code,
-                    Line = line,
-                    Column = column,
-                    Length = length,
-                    Message = message,
-                };
-                if (IsStrict) { StrictBail = true; return false; }
-            }
+            TrackStrictErrorIfNeeded(severity, code, line, column, length, message);
             return !IsStrict || severity != LrcDiagnosticSeverity.Error;
         }
 
-        var diag = new LrcDiagnostic
-        {
-            Severity = severity,
-            Code = code,
-            Line = line,
-            Column = column,
-            Length = length,
-            Message = message,
-        };
+        var diag = CreateDiagnostic(severity, code, line, column, length, message);
 
         _items.Add(diag);
 
@@ -94,6 +78,26 @@ internal sealed class LrcDiagnosticEmitter
         }
         return true;
     }
+
+    private void TrackStrictErrorIfNeeded(LrcDiagnosticSeverity severity, string code, int line, int column, int length, string message)
+    {
+        if (severity != LrcDiagnosticSeverity.Error) return;
+
+        FirstError ??= CreateDiagnostic(severity, code, line, column, length, message);
+        if (IsStrict)
+            StrictBail = true;
+    }
+
+    private static LrcDiagnostic CreateDiagnostic(LrcDiagnosticSeverity severity, string code, int line, int column, int length, string message)
+        => new()
+        {
+            Severity = severity,
+            Code = code,
+            Line = line,
+            Column = column,
+            Length = length,
+            Message = message,
+        };
 
     /// <summary>Snapshot the collected diagnostics (in source order).</summary>
     public ImmutableArray<LrcDiagnostic> ToImmutableArray() => _items.ToImmutableArray();

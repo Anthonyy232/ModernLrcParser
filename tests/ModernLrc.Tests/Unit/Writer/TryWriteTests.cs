@@ -1,3 +1,4 @@
+using System.Text;
 using ModernLrc;
 
 namespace ModernLrc.Tests.Unit.Writer;
@@ -29,5 +30,21 @@ public sealed class TryWriteTests
         Span<byte> dest = stackalloc byte[64];
         LrcWriter.TryWrite(doc, dest, out int written).ShouldBeTrue();
         System.Text.Encoding.UTF8.GetString(dest[..written]).ShouldBe("[00:01.00]x\n");
+    }
+
+    [Fact]
+    public void TryWrite_Byte_UsesConfiguredEncoding()
+    {
+        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
+        var options = new LrcWriteOptions { EmitByteOrderMark = true, Encoding = Encoding.BigEndianUnicode };
+        var expected = Encoding.BigEndianUnicode.GetPreamble()
+            .Concat(Encoding.BigEndianUnicode.GetBytes(LrcWriter.Write(doc, options)))
+            .ToArray();
+        Span<byte> dest = new byte[expected.Length];
+
+        LrcWriter.TryWrite(doc, dest, out int written, options).ShouldBeTrue();
+
+        written.ShouldBe(expected.Length);
+        dest[..written].ToArray().ShouldBe(expected);
     }
 }

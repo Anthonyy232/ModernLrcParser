@@ -6,11 +6,11 @@ namespace ModernLrc;
 /// <see cref="Write(LrcDocument, LrcWriteOptions?)"/>.</summary>
 /// <remarks>
 /// <para>Sinks: <see cref="string"/>, <see cref="TextWriter"/>, <see cref="Stream"/>,
-/// <see cref="IBufferWriter{T}"/> (chars or UTF-8 bytes), fixed <see cref="Span{T}"/>
+/// <see cref="IBufferWriter{T}"/> (chars or encoded bytes), fixed <see cref="Span{T}"/>
 /// (via the <c>TryWrite</c> family), and a path on disk
 /// (<see cref="WriteFile(LrcDocument, string, LrcWriteOptions?)"/>, atomic via temp + rename).</para>
-/// <para>The <see cref="IBufferWriter{T}"/> and UTF-8 stream paths are zero-allocation beyond
-/// consumer-buffer growth.</para>
+/// <para>The <see cref="IBufferWriter{T}"/> char sink and UTF-8 byte sinks are zero-allocation
+/// beyond consumer-buffer growth.</para>
 /// </remarks>
 /// <example>
 /// <code>
@@ -108,8 +108,8 @@ public static partial class LrcWriter
         Internal.LrcSpanRenderer.RenderToChars(document, writer, options);
     }
 
-    /// <summary>Render directly into an <see cref="IBufferWriter{T}"/> of UTF-8 bytes. Zero allocations
-    /// beyond consumer buffer growth.</summary>
+    /// <summary>Render directly into an <see cref="IBufferWriter{T}"/> of encoded bytes.
+    /// The UTF-8 path has zero allocations beyond consumer buffer growth.</summary>
     /// <param name="document">The document to render.</param>
     /// <param name="writer">Destination buffer writer.</param>
     /// <param name="options">Write options.</param>
@@ -139,7 +139,7 @@ public static partial class LrcWriter
         return true;
     }
 
-    /// <summary>Try-render into a fixed UTF-8 byte buffer.</summary>
+    /// <summary>Try-render into a fixed byte buffer using <see cref="LrcWriteOptions.Encoding"/>.</summary>
     /// <param name="document">The document to render.</param>
     /// <param name="destination">Destination span.</param>
     /// <param name="bytesWritten">Number of bytes written on success; 0 on failure.</param>

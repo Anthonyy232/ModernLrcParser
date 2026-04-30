@@ -50,7 +50,7 @@ public static partial class LrcParser
         options ??= LrcParseOptions.Default;
 
         if (stream is MemoryStream ms && ms.TryGetBuffer(out var seg))
-            return Parse(seg.AsSpan(), options);
+            return ParseMemoryStreamBuffer(ms, seg, options);
 
         using var buffer = new MemoryStream();
         await stream.CopyToAsync(buffer, options.ReadBufferSize, cancellationToken).ConfigureAwait(false);

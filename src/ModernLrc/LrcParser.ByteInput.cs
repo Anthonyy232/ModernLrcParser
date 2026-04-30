@@ -53,11 +53,23 @@ public static partial class LrcParser
         options ??= LrcParseOptions.Default;
 
         if (stream is MemoryStream ms && ms.TryGetBuffer(out var seg))
-            return Parse(seg.AsSpan(), options);
+            return ParseMemoryStreamBuffer(ms, seg, options);
 
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer, options.ReadBufferSize);
         return Parse(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), options);
+    }
+
+    private static LrcParseResult ParseMemoryStreamBuffer(MemoryStream stream, ArraySegment<byte> segment, LrcParseOptions options)
+    {
+        if (stream.Position >= stream.Length)
+            return Parse(ReadOnlySpan<byte>.Empty, options);
+
+        int offset = checked((int)stream.Position);
+        int count = checked((int)(stream.Length - stream.Position));
+        var remaining = segment.AsSpan(offset, count);
+        stream.Position = stream.Length;
+        return Parse(remaining, options);
     }
 
     /// <summary>Parse a file at <paramref name="path"/> synchronously. Annotates strict-mode

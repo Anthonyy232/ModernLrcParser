@@ -60,6 +60,8 @@ public readonly partial struct LrcTimestamp :
     public static LrcTimestamp FromMilliseconds(long ms)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ms);
+        if (ms > long.MaxValue / TimeSpan.TicksPerMillisecond)
+            throw new ArgumentOutOfRangeException(nameof(ms), "Milliseconds value is too large.");
         return new LrcTimestamp(ms * TimeSpan.TicksPerMillisecond);
     }
 

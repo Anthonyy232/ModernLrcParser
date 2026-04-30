@@ -53,7 +53,17 @@ public static partial class LrcWriter
             }
         }
 
-        Internal.LrcSpanRenderer.RenderToUtf8(document, writer, options);
+        if (options.Encoding is System.Text.UTF8Encoding)
+        {
+            Internal.LrcSpanRenderer.RenderToUtf8(document, writer, options);
+            return;
+        }
+
+        var content = Write(document, options);
+        int byteCount = options.Encoding.GetByteCount(content);
+        var span = writer.GetSpan(byteCount);
+        int bytesWritten = options.Encoding.GetBytes(content.AsSpan(), span);
+        writer.Advance(bytesWritten);
     }
 
     // TryWrite byte overload
@@ -61,6 +71,9 @@ public static partial class LrcWriter
     {
         ArgumentNullException.ThrowIfNull(document);
         options ??= LrcWriteOptions.Default;
+
+        if (options.Encoding is not System.Text.UTF8Encoding)
+            return TryWriteToEncodedBytes(document, destination, out bytesWritten, options);
 
         // Render to a staging buffer to get the exact byte count, then copy if it fits.
         // The staging buffer is the only allocation here.
@@ -79,6 +92,21 @@ public static partial class LrcWriter
         if (staging.WrittenCount > destination.Length) { bytesWritten = 0; return false; }
         staging.WrittenSpan.CopyTo(destination);
         bytesWritten = staging.WrittenCount;
+        return true;
+    }
+
+    private static bool TryWriteToEncodedBytes(LrcDocument document, Span<byte> destination, out int bytesWritten, LrcWriteOptions options)
+    {
+        byte[] preamble = options.EmitByteOrderMark ? options.Encoding.GetPreamble() : [];
+        var content = Write(document, options);
+        int bodyByteCount = options.Encoding.GetByteCount(content);
+        long totalByteCount = (long)preamble.Length + bodyByteCount;
+
+        if (totalByteCount > destination.Length) { bytesWritten = 0; return false; }
+
+        preamble.CopyTo(destination);
+        int bodyBytesWritten = options.Encoding.GetBytes(content.AsSpan(), destination[preamble.Length..]);
+        bytesWritten = preamble.Length + bodyBytesWritten;
         return true;
     }
 

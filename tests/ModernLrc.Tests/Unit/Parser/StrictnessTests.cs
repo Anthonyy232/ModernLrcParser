@@ -31,4 +31,37 @@ public sealed class StrictnessTests
         result.Document.Lines.Count.ShouldBe(1);
         ((ModernLrc.Model.LrcPlainLine)result.Document.Lines[0]).Text.ShouldBe("good");
     }
+
+    [Fact]
+    public void Strict_MaxDiagnosticsZero_StillThrowsWhenSuppressedErrorArrivesAfterWarning()
+    {
+        var options = new LrcParseOptions
+        {
+            Strictness = LrcStrictness.Strict,
+            MaxDiagnostics = 0,
+        };
+
+        var ex = Should.Throw<LrcParseException>(() =>
+            LrcParser.Parse("[]\n[bad]junk", options));
+
+        ex.FirstError.ShouldNotBeNull();
+        ex.FirstError!.Code.ShouldBe("LRC0003");
+        ex.PartialResult!.Diagnostics.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Strict_ErrorAfterDiagnosticCap_StillThrows()
+    {
+        var options = new LrcParseOptions
+        {
+            Strictness = LrcStrictness.Strict,
+            MaxDiagnostics = 1,
+        };
+
+        var ex = Should.Throw<LrcParseException>(() =>
+            LrcParser.Parse("[]\n[]\n[bad]junk", options));
+
+        ex.FirstError.ShouldNotBeNull();
+        ex.FirstError!.Code.ShouldBe("LRC0003");
+    }
 }

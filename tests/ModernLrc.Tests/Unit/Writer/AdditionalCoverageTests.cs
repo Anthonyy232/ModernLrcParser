@@ -100,6 +100,21 @@ public sealed class AdditionalCoverageTests
         bytes[1].ShouldBe((byte)0xFF);
     }
 
+    [Fact]
+    public void Utf16Be_BufferWriter_UsesConfiguredEncoding()
+    {
+        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "hello").Build();
+        var options = new LrcWriteOptions { EmitByteOrderMark = true, Encoding = Encoding.BigEndianUnicode };
+        var expected = Encoding.BigEndianUnicode.GetPreamble()
+            .Concat(Encoding.BigEndianUnicode.GetBytes(LrcWriter.Write(doc, options)))
+            .ToArray();
+
+        var buf = new System.Buffers.ArrayBufferWriter<byte>();
+        LrcWriter.Write(doc, buf, options);
+
+        buf.WrittenSpan.ToArray().ShouldBe(expected);
+    }
+
     // -------------------------------------------------------------------------
     // Atomic file write — verify temp file is cleaned up after failure.
     // -------------------------------------------------------------------------

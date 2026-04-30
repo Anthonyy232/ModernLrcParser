@@ -27,7 +27,7 @@ var quietStrict = new LrcParseOptions
 | Property | Default | Notes |
 |---|---|---|
 | `LineEnding` | `Lf` | `Lf`, `Crlf`, `Cr`, or `System` (which falls back to `Lf` if `Environment.NewLine` is unusual). |
-| `Encoding` | UTF-8 (no BOM) | Used for `Stream` / `IBufferWriter<byte>` paths. |
+| `Encoding` | UTF-8 (no BOM) | Used for `Stream`, `IBufferWriter<byte>`, and fixed `Span<byte>` paths. |
 | `EmitByteOrderMark` | `false` | Sole BOM control. `true` prepends `Encoding.GetPreamble()`. |
 | `TrailingNewline` | `true` | Whether the rendered output ends with one line ending. |
 | `TimestampPrecision` | `Centiseconds` | `mm:ss.xx` vs `mm:ss.xxx` (Milliseconds). |
@@ -56,8 +56,8 @@ hosts.
 
 ### `TrailingNewline`
 
-When `false`, the renderer strips any trailing line endings from the output —
-useful when piping into a writer that has its own newline policy.
+When `false`, the renderer does not add its usual final line ending. User text
+is still preserved verbatim, including any trailing `\r` or `\n` inside a lyric line.
 
 ```csharp
 // Recipe: Windows-friendly output with explicit BOM.

@@ -41,10 +41,13 @@ public enum LrcTimestampPrecision : byte
     Justification = "byte is intentional — option records are small and dense.")]
 public enum LrcMetadataOrdering : byte
 {
-    /// <summary><c>ti, ar, al, au, lr, length, by, offset, re, ve</c> then <c>RawTags</c> in array order.</summary>
+    /// <summary>Typed accessors with no matching raw tag in
+    /// <c>ti, ar, al, au, lr, length, by, offset, re, ve</c> order, then
+    /// <c>RawTags</c> in array order.</summary>
     Canonical = 0,
 
-    /// <summary>Typed accessors A→Z by name, then <c>RawTags</c> A→Z by key.</summary>
+    /// <summary>Typed accessors with no matching raw tag A→Z by name, then
+    /// <c>RawTags</c> A→Z by key.</summary>
     Alphabetical = 1,
 }
 

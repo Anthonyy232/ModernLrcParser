@@ -51,4 +51,34 @@ public sealed class RoundTripTests
         ((LrcPlainLine)parsed.Document.Lines[0]).EffectiveVoice.ShouldBe(LrcVoice.Female);
         ((LrcPlainLine)parsed.Document.Lines[1]).EffectiveVoice.ShouldBe(LrcVoice.Female);
     }
+
+    [Fact]
+    public void Metadata_DuplicateTypedRawTags_RoundTrip()
+    {
+        const string input = "[ti:First]\n[ti:Last]\n[00:01.00]x";
+
+        var parsed = LrcParser.Parse(input);
+        string written = LrcWriter.Write(parsed.Document);
+        var reparsed = LrcParser.Parse(written);
+
+        reparsed.Document.Metadata.Title.ShouldBe("Last");
+        reparsed.Document.Metadata.RawTags.Count.ShouldBe(2);
+        reparsed.Document.Metadata.RawTags[0].ShouldBe(new LrcTag("ti", "First"));
+        reparsed.Document.Metadata.RawTags[1].ShouldBe(new LrcTag("ti", "Last"));
+    }
+
+    [Fact]
+    public void Metadata_BuilderEditedTypedAccessor_ReplacesRawTags()
+    {
+        var parsed = LrcParser.Parse("[ti:Original]\n[00:01.00]x").Document;
+        var edited = new LrcDocumentBuilder(parsed)
+            .WithTitle("Edited")
+            .Build();
+
+        var reparsed = LrcParser.Parse(LrcWriter.Write(edited));
+
+        reparsed.Document.Metadata.Title.ShouldBe("Edited");
+        reparsed.Document.Metadata.RawTags.Count.ShouldBe(1);
+        reparsed.Document.Metadata.RawTags[0].ShouldBe(new LrcTag("ti", "Edited"));
+    }
 }

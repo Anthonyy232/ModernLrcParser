@@ -59,6 +59,10 @@ LrcLine? current = doc.FindLineAt(currentPlayhead);  // already factors offset i
 
 This preserves round-trip fidelity — re-writing the document emits the original `[offset:N]` tag rather than collapsing it into mutated timestamps.
 
+Round-trip fidelity applies to supported LRC syntax. If authored plain lyric text
+contains valid-looking LRC markers such as `<00:01.00>`, a later parse will treat
+those markers as syntax.
+
 ### Encoding model
 
 Byte/stream input uses this priority:

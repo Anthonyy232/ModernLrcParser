@@ -94,6 +94,21 @@ public sealed class RecoveryTests
         ((LrcPlainLine)line).Text.ShouldBe("a < b > c");
     }
 
+    [Fact]
+    public void EnhancedParseFailure_AfterValidWord_PreservesTrailingText()
+    {
+        var result = LrcParser.Parse("[00:01.00]<00:01.00>ok <bad>lost");
+
+        result.Diagnostics.ShouldContain(d => d.Code == LrcDiagnosticIds.InvalidEnhancedTimestamp);
+        result.Diagnostics.ShouldNotContain(d => d.Code == LrcDiagnosticIds.DroppedUntimedText);
+        result.Document.Lines.Count.ShouldBe(1);
+
+        var line = result.Document.Lines[0].ShouldBeOfType<LrcEnhancedLine>();
+        line.Words.Count.ShouldBe(1);
+        line.Words[0].Text.ShouldBe("ok <bad>lost");
+        line.GetText().ShouldBe("ok <bad>lost");
+    }
+
     [Theory]
     [InlineData("eng||")]
     [InlineData("jpn||")]

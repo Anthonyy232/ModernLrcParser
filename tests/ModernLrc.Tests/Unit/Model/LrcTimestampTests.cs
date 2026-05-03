@@ -39,6 +39,13 @@ public sealed class LrcTimestampTests
     }
 
     [Fact]
+    public void TotalMilliseconds_LargeAcceptedTimestamp_DoesNotOverflow()
+    {
+        long expected = (long)int.MaxValue + 123;
+        LrcTimestamp.FromMilliseconds(expected).TotalMilliseconds.ShouldBe(expected);
+    }
+
+    [Fact]
     public void FromMilliseconds_TooLarge_Throws()
     {
         long tooLarge = long.MaxValue / TimeSpan.TicksPerMillisecond + 1;

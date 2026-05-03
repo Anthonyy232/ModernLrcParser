@@ -54,6 +54,7 @@ internal ref partial struct LrcScanner
 
         while (!_cursor.IsAtEnd && _cursor.Peek() == '<')
         {
+            int openPosition = _cursor.Position;
             int openLine = _cursor.Line;
             int openColumn = _cursor.Column;
             _cursor.Advance();
@@ -73,6 +74,19 @@ internal ref partial struct LrcScanner
                 _diag.Emit(LrcDiagnosticSeverity.Error, LrcDiagnosticIds.InvalidEnhancedTimestamp,
                     openLine, openColumn, closeIdx - _cursor.Position + 2,
                     $"Invalid enhanced timestamp '<{inside.ToString()}>'.");
+                if (_diag.StrictBail) return;
+
+                if (words.Count > 0)
+                {
+                    _cursor.Position = openPosition;
+                    int tailEol = _cursor.IndexOfLineEnd();
+                    var tail = StripTrailingCr(_cursor.Slice(tailEol - _cursor.Position)).ToString();
+                    var last = words[^1];
+                    words[^1] = last with { Text = last.Text + tail };
+                    _cursor.Position = tailEol;
+                    break;
+                }
+
                 _cursor.Position = closeIdx + 1;
                 continue;
             }

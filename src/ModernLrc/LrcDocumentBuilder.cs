@@ -81,34 +81,34 @@ public sealed class LrcDocumentBuilder
     // ----- Metadata fluent setters -----
 
     /// <summary>Set or clear the title (<c>ti</c>).</summary>
-    public LrcDocumentBuilder WithTitle(string? value) { _title = value; return this; }
+    public LrcDocumentBuilder WithTitle(string? value) { _title = value; RemoveRawTags("ti"); return this; }
 
     /// <summary>Set or clear the artist (<c>ar</c>).</summary>
-    public LrcDocumentBuilder WithArtist(string? value) { _artist = value; return this; }
+    public LrcDocumentBuilder WithArtist(string? value) { _artist = value; RemoveRawTags("ar"); return this; }
 
     /// <summary>Set or clear the album (<c>al</c>).</summary>
-    public LrcDocumentBuilder WithAlbum(string? value) { _album = value; return this; }
+    public LrcDocumentBuilder WithAlbum(string? value) { _album = value; RemoveRawTags("al"); return this; }
 
     /// <summary>Set or clear the author (<c>au</c>).</summary>
-    public LrcDocumentBuilder WithAuthor(string? value) { _author = value; return this; }
+    public LrcDocumentBuilder WithAuthor(string? value) { _author = value; RemoveRawTags("au"); return this; }
 
     /// <summary>Set or clear the lyricist (<c>lr</c>).</summary>
-    public LrcDocumentBuilder WithLyricist(string? value) { _lyricist = value; return this; }
+    public LrcDocumentBuilder WithLyricist(string? value) { _lyricist = value; RemoveRawTags("lr"); return this; }
 
     /// <summary>Set or clear the created-by attribution (<c>by</c>).</summary>
-    public LrcDocumentBuilder WithCreatedBy(string? value) { _createdBy = value; return this; }
+    public LrcDocumentBuilder WithCreatedBy(string? value) { _createdBy = value; RemoveRawTags("by"); return this; }
 
     /// <summary>Set or clear the tool (<c>re</c> / <c>tool</c>).</summary>
-    public LrcDocumentBuilder WithTool(string? value) { _tool = value; return this; }
+    public LrcDocumentBuilder WithTool(string? value) { _tool = value; RemoveRawTags("re", "tool"); return this; }
 
     /// <summary>Set or clear the version (<c>ve</c>).</summary>
-    public LrcDocumentBuilder WithVersion(string? value) { _version = value; return this; }
+    public LrcDocumentBuilder WithVersion(string? value) { _version = value; RemoveRawTags("ve"); return this; }
 
     /// <summary>Set or clear the track length (<c>length:mm:ss</c>).</summary>
-    public LrcDocumentBuilder WithLength(TimeSpan? value) { _length = value; return this; }
+    public LrcDocumentBuilder WithLength(TimeSpan? value) { _length = value; RemoveRawTags("length"); return this; }
 
     /// <summary>Set the document offset (<c>offset:±N</c> ms).</summary>
-    public LrcDocumentBuilder WithOffset(TimeSpan value) { _offset = value; return this; }
+    public LrcDocumentBuilder WithOffset(TimeSpan value) { _offset = value; RemoveRawTags("offset"); return this; }
 
     /// <summary>Append a raw tag entry (preserves insertion order).
     /// <paramref name="key"/> must be non-empty (whitespace-only is rejected — it would round-trip
@@ -128,6 +128,14 @@ public sealed class LrcDocumentBuilder
         _rawTags.RemoveAll(t => string.Equals(t.Key, key, StringComparison.Ordinal));
         return this;
     }
+
+    private void RemoveRawTags(string key)
+        => _rawTags.RemoveAll(t => string.Equals(t.Key, key, StringComparison.Ordinal));
+
+    private void RemoveRawTags(string key1, string key2)
+        => _rawTags.RemoveAll(t =>
+            string.Equals(t.Key, key1, StringComparison.Ordinal)
+            || string.Equals(t.Key, key2, StringComparison.Ordinal));
 
     // ----- Plain line addition -----
 

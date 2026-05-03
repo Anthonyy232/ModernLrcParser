@@ -26,6 +26,11 @@ jobs:
       - name: Test
         run: dotnet test tests/ModernLrc.Tests/ModernLrc.Tests.csproj -c Release --no-build
 
+      - name: AOT publish + smoke
+        run: |
+          dotnet publish tests/ModernLrc.Tests.Aot/ModernLrc.Tests.Aot.csproj -c Release -o aot-publish
+          ./aot-publish/ModernLrc.Tests.Aot
+
       - name: Pack
         run: dotnet pack src/ModernLrc/ModernLrc.csproj -c Release --no-build -o nupkg
 

@@ -4,6 +4,25 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-05-02
+
+### Changed
+
+- `LrcTimestamp.TotalMilliseconds` now returns `long` instead of `int`, matching
+  the timestamp range accepted by parsing and factory APIs without overflowing
+  for values beyond `int.MaxValue` milliseconds.
+- `LrcDocumentBuilder` typed metadata setters now remove matching raw typed tags
+  from seeded documents so explicit edits win on write.
+
+### Fixed
+
+- Tolerant Enhanced LRC recovery now preserves literal trailing text after an
+  invalid enhanced timestamp appears later in an otherwise valid enhanced line.
+- Parsed duplicate/conflicting typed metadata tags now round-trip through the
+  writer instead of collapsing to only the last-wins typed accessor.
+- The release workflow now runs the Native AOT publish/smoke check before
+  packing and publishing.
+
 ## [1.1.1] — 2026-04-30
 
 ### Added
@@ -46,6 +65,7 @@ Initial public release. Modern, AOT-compatible LRC (lyrics) parser/writer for
 Walaoke voice markers), tolerant-by-default with a stable diagnostic catalogue,
 sync + async overloads for every input shape, and zero-allocation writer paths.
 
+[1.2.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.0.0

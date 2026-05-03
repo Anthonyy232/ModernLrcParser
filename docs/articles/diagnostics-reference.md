@@ -24,7 +24,7 @@ parser keeps going. In **strict** mode, the first Error-severity diagnostic caus
 | `LRC0004` `UnknownIdTag` | Info | `[xx:value]` where `xx` isn't one of the known keys. | Preserved verbatim in `Metadata.RawTags`. |
 | `LRC0005` `InvalidOffset` | Warning | `[offset:not-a-number]`. | Tag preserved in `RawTags`; typed `Offset` unchanged. |
 | `LRC0006` `InvalidLength` | Warning | `[length:invalid]`. | Tag preserved in `RawTags`; typed `Length` unchanged. |
-| `LRC0007` `InvalidEnhancedTimestamp` | Error | `<bad>` inside an enhanced line (text isn't a valid timestamp). | Word skipped; following text becomes part of the line. |
+| `LRC0007` `InvalidEnhancedTimestamp` | Error | `<bad>` inside an enhanced line (text isn't a valid timestamp). | Word skipped; following text is preserved as literal line text. |
 | `LRC0008` `UnclosedEnhancedTimestamp` | Error | `<` with no matching `>` before line end. | Skip rest of line. |
 | `LRC0009` `EmptyTimestamp` | Warning | Literal `[]` group. | Group dropped; subsequent timestamps still parsed. |
 

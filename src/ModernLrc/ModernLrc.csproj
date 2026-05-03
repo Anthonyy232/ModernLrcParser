@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>ModernLrc</PackageId>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Authors>Anthony La</Authors>
     <Copyright>Copyright © Anthony La</Copyright>
     <Description>Modern, AOT-compatible LRC (lyrics) parser/writer library for .NET 10.</Description>

@@ -39,14 +39,17 @@ var quietStrict = new LrcParseOptions
 
 ### `MetadataOrdering`
 
-- **`Canonical`** — `ti, ar, al, au, lr, length, by, offset, re, ve` (the order
-  most LRC players expect), then `RawTags` in original array order skipping
-  strongly-typed duplicates.
-- **`Alphabetical`** — typed accessors A→Z by C# property name (Album, Artist,
-  Author, …), then `RawTags` A→Z by key.
+- **`Canonical`** — typed accessors with no matching raw tag are emitted as
+  `ti, ar, al, au, lr, length, by, offset, re, ve`, then `RawTags` in original
+  array order. For parsed documents this preserves duplicate/conflicting typed
+  tags exactly.
+- **`Alphabetical`** — typed accessors with no matching raw tag are emitted A→Z
+  by C# property name (Album, Artist, Author, …), then all `RawTags` A→Z by key.
 
-Both orderings preserve all RawTags — the typed accessors are written from the
-last-wins value and `RawTags` keep every original entry.
+Both orderings preserve all `RawTags`. When you edit a typed accessor through
+`LrcDocumentBuilder`, the builder removes matching raw typed tags so the edit
+wins on write. Unchanged parsed metadata keeps duplicate or conflicting source
+tags instead of being collapsed to the last-wins value.
 
 ### `LineEnding`
 

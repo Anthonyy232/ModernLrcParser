@@ -13,6 +13,22 @@ namespace ModernLrc.Internal;
 /// </summary>
 internal static class LrcSpanRenderer
 {
+    [Flags]
+    private enum RawMetadataKeys : ushort
+    {
+        None = 0,
+        Title = 1 << 0,
+        Artist = 1 << 1,
+        Album = 1 << 2,
+        Author = 1 << 3,
+        Lyricist = 1 << 4,
+        Length = 1 << 5,
+        CreatedBy = 1 << 6,
+        Offset = 1 << 7,
+        Tool = 1 << 8,
+        Version = 1 << 9,
+    }
+
     // -------------------------------------------------------------------------
     // Char path
     // -------------------------------------------------------------------------
@@ -55,31 +71,41 @@ internal static class LrcSpanRenderer
         // any tracks whether anything was written; doubles as the "needs leading line ending"
         // flag so each subsequent item writes its separator BEFORE its content.
         bool any = false;
+        // RawTags that survived builder edits are authoritative for source fidelity.
+        // Typed accessors fill only metadata that has no corresponding raw tag.
+        var rawKeys = GetRawMetadataKeys(metadata);
 
         if (options.MetadataOrdering == LrcMetadataOrdering.Canonical)
         {
-            any |= AppendTagIfChars(ref w, "ti", metadata.Title, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "ar", metadata.Artist, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "al", metadata.Album, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "au", metadata.Author, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "lr", metadata.Lyricist, lineEnding, any);
-            if (metadata.Length is not null)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Title))
+                any |= AppendTagIfChars(ref w, "ti", metadata.Title, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Artist))
+                any |= AppendTagIfChars(ref w, "ar", metadata.Artist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Album))
+                any |= AppendTagIfChars(ref w, "al", metadata.Album, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Author))
+                any |= AppendTagIfChars(ref w, "au", metadata.Author, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Lyricist))
+                any |= AppendTagIfChars(ref w, "lr", metadata.Lyricist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Length) && metadata.Length is not null)
             {
                 AppendLengthChars(ref w, metadata.Length.Value, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfChars(ref w, "by", metadata.CreatedBy, lineEnding, any);
-            if (metadata.Offset != TimeSpan.Zero)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.CreatedBy))
+                any |= AppendTagIfChars(ref w, "by", metadata.CreatedBy, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Offset) && metadata.Offset != TimeSpan.Zero)
             {
                 AppendOffsetChars(ref w, metadata.Offset, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfChars(ref w, "re", metadata.Tool, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "ve", metadata.Version, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Tool))
+                any |= AppendTagIfChars(ref w, "re", metadata.Tool, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Version))
+                any |= AppendTagIfChars(ref w, "ve", metadata.Version, lineEnding, any);
 
             foreach (var tag in metadata.RawTags)
             {
-                if (IsStronglyTypedKey(tag.Key)) continue;
                 if (any) w.Append(lineEnding);
                 w.Append('['); w.Append(tag.Key); w.Append(':'); w.Append(tag.Value); w.Append(']');
                 any = true;
@@ -87,27 +113,34 @@ internal static class LrcSpanRenderer
         }
         else // Alphabetical
         {
-            any |= AppendTagIfChars(ref w, "al", metadata.Album, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "ar", metadata.Artist, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "au", metadata.Author, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "by", metadata.CreatedBy, lineEnding, any);
-            if (metadata.Length is not null)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Album))
+                any |= AppendTagIfChars(ref w, "al", metadata.Album, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Artist))
+                any |= AppendTagIfChars(ref w, "ar", metadata.Artist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Author))
+                any |= AppendTagIfChars(ref w, "au", metadata.Author, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.CreatedBy))
+                any |= AppendTagIfChars(ref w, "by", metadata.CreatedBy, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Length) && metadata.Length is not null)
             {
                 AppendLengthChars(ref w, metadata.Length.Value, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfChars(ref w, "lr", metadata.Lyricist, lineEnding, any);
-            if (metadata.Offset != TimeSpan.Zero)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Lyricist))
+                any |= AppendTagIfChars(ref w, "lr", metadata.Lyricist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Offset) && metadata.Offset != TimeSpan.Zero)
             {
                 AppendOffsetChars(ref w, metadata.Offset, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfChars(ref w, "ti", metadata.Title, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "re", metadata.Tool, lineEnding, any);
-            any |= AppendTagIfChars(ref w, "ve", metadata.Version, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Title))
+                any |= AppendTagIfChars(ref w, "ti", metadata.Title, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Tool))
+                any |= AppendTagIfChars(ref w, "re", metadata.Tool, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Version))
+                any |= AppendTagIfChars(ref w, "ve", metadata.Version, lineEnding, any);
 
-            // RawTags A→Z by key (NOT typed-key duplicates).
-            int rawCount = RentSortedNonTypedTags(metadata, out var rented);
+            int rawCount = RentSortedRawTags(metadata, out var rented);
             try
             {
                 for (int i = 0; i < rawCount; i++)
@@ -279,31 +312,41 @@ internal static class LrcSpanRenderer
         LrcWriteOptions options, byte[] lineEnding)
     {
         bool any = false;
+        // RawTags that survived builder edits are authoritative for source fidelity.
+        // Typed accessors fill only metadata that has no corresponding raw tag.
+        var rawKeys = GetRawMetadataKeys(metadata);
 
         if (options.MetadataOrdering == LrcMetadataOrdering.Canonical)
         {
-            any |= AppendTagIfUtf8(ref w, "ti", metadata.Title, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "ar", metadata.Artist, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "al", metadata.Album, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "au", metadata.Author, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "lr", metadata.Lyricist, lineEnding, any);
-            if (metadata.Length is not null)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Title))
+                any |= AppendTagIfUtf8(ref w, "ti", metadata.Title, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Artist))
+                any |= AppendTagIfUtf8(ref w, "ar", metadata.Artist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Album))
+                any |= AppendTagIfUtf8(ref w, "al", metadata.Album, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Author))
+                any |= AppendTagIfUtf8(ref w, "au", metadata.Author, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Lyricist))
+                any |= AppendTagIfUtf8(ref w, "lr", metadata.Lyricist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Length) && metadata.Length is not null)
             {
                 AppendLengthUtf8(ref w, metadata.Length.Value, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfUtf8(ref w, "by", metadata.CreatedBy, lineEnding, any);
-            if (metadata.Offset != TimeSpan.Zero)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.CreatedBy))
+                any |= AppendTagIfUtf8(ref w, "by", metadata.CreatedBy, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Offset) && metadata.Offset != TimeSpan.Zero)
             {
                 AppendOffsetUtf8(ref w, metadata.Offset, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfUtf8(ref w, "re", metadata.Tool, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "ve", metadata.Version, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Tool))
+                any |= AppendTagIfUtf8(ref w, "re", metadata.Tool, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Version))
+                any |= AppendTagIfUtf8(ref w, "ve", metadata.Version, lineEnding, any);
 
             foreach (var tag in metadata.RawTags)
             {
-                if (IsStronglyTypedKey(tag.Key)) continue;
                 if (any) w.Append(lineEnding);
                 w.Append("["u8); w.AppendText(tag.Key); w.Append(":"u8); w.AppendText(tag.Value); w.Append("]"u8);
                 any = true;
@@ -311,26 +354,34 @@ internal static class LrcSpanRenderer
         }
         else // Alphabetical
         {
-            any |= AppendTagIfUtf8(ref w, "al", metadata.Album, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "ar", metadata.Artist, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "au", metadata.Author, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "by", metadata.CreatedBy, lineEnding, any);
-            if (metadata.Length is not null)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Album))
+                any |= AppendTagIfUtf8(ref w, "al", metadata.Album, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Artist))
+                any |= AppendTagIfUtf8(ref w, "ar", metadata.Artist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Author))
+                any |= AppendTagIfUtf8(ref w, "au", metadata.Author, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.CreatedBy))
+                any |= AppendTagIfUtf8(ref w, "by", metadata.CreatedBy, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Length) && metadata.Length is not null)
             {
                 AppendLengthUtf8(ref w, metadata.Length.Value, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfUtf8(ref w, "lr", metadata.Lyricist, lineEnding, any);
-            if (metadata.Offset != TimeSpan.Zero)
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Lyricist))
+                any |= AppendTagIfUtf8(ref w, "lr", metadata.Lyricist, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Offset) && metadata.Offset != TimeSpan.Zero)
             {
                 AppendOffsetUtf8(ref w, metadata.Offset, lineEnding, any);
                 any = true;
             }
-            any |= AppendTagIfUtf8(ref w, "ti", metadata.Title, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "re", metadata.Tool, lineEnding, any);
-            any |= AppendTagIfUtf8(ref w, "ve", metadata.Version, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Title))
+                any |= AppendTagIfUtf8(ref w, "ti", metadata.Title, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Tool))
+                any |= AppendTagIfUtf8(ref w, "re", metadata.Tool, lineEnding, any);
+            if (!HasRawKey(rawKeys, RawMetadataKeys.Version))
+                any |= AppendTagIfUtf8(ref w, "ve", metadata.Version, lineEnding, any);
 
-            int rawCount = RentSortedNonTypedTags(metadata, out var rented);
+            int rawCount = RentSortedRawTags(metadata, out var rented);
             try
             {
                 for (int i = 0; i < rawCount; i++)
@@ -496,25 +547,43 @@ internal static class LrcSpanRenderer
         _ => LfBytes,
     };
 
-    internal static bool IsStronglyTypedKey(string key) => key switch
+    private static bool HasRawKey(RawMetadataKeys keys, RawMetadataKeys key)
+        => (keys & key) != 0;
+
+    private static RawMetadataKeys KeyToRawMetadataKey(string key) => key switch
     {
-        "ti" or "ar" or "al" or "au" or "lr" or "by" or "re" or "tool" or "ve" or "length" or "offset" => true,
-        _ => false,
+        "ti" => RawMetadataKeys.Title,
+        "ar" => RawMetadataKeys.Artist,
+        "al" => RawMetadataKeys.Album,
+        "au" => RawMetadataKeys.Author,
+        "lr" => RawMetadataKeys.Lyricist,
+        "length" => RawMetadataKeys.Length,
+        "by" => RawMetadataKeys.CreatedBy,
+        "offset" => RawMetadataKeys.Offset,
+        "re" or "tool" => RawMetadataKeys.Tool,
+        "ve" => RawMetadataKeys.Version,
+        _ => RawMetadataKeys.None,
     };
 
-    /// <summary>Rents a buffer from <see cref="ArrayPool{T}"/>, copies all non-strongly-typed
-    /// raw tags, sorts them in place by key (Ordinal). Caller must Return when count > 0.</summary>
-    internal static int RentSortedNonTypedTags(LrcMetadata metadata, out LrcTag[] rented)
+    private static RawMetadataKeys GetRawMetadataKeys(LrcMetadata metadata)
     {
-        int count = 0;
+        var keys = RawMetadataKeys.None;
         foreach (var tag in metadata.RawTags)
-            if (!IsStronglyTypedKey(tag.Key)) count++;
+            keys |= KeyToRawMetadataKey(tag.Key);
+        return keys;
+    }
+
+    /// <summary>Rents a buffer from <see cref="ArrayPool{T}"/>, copies all raw tags,
+    /// and sorts them in place by key (Ordinal). Caller must Return when count > 0.</summary>
+    internal static int RentSortedRawTags(LrcMetadata metadata, out LrcTag[] rented)
+    {
+        int count = metadata.RawTags.Count;
         if (count == 0) { rented = Array.Empty<LrcTag>(); return 0; }
 
         rented = ArrayPool<LrcTag>.Shared.Rent(count);
         int i = 0;
         foreach (var tag in metadata.RawTags)
-            if (!IsStronglyTypedKey(tag.Key)) rented[i++] = tag;
+            rented[i++] = tag;
 
         // Insertion sort over [0, count) — typical metadata has < 5 raw tags.
         var span = rented.AsSpan(0, count);

@@ -41,7 +41,7 @@ public readonly partial struct LrcTimestamp :
     public long Ticks => _ticks;
 
     /// <summary>Whole milliseconds (truncated).</summary>
-    public int TotalMilliseconds => (int)(_ticks / TimeSpan.TicksPerMillisecond);
+    public long TotalMilliseconds => _ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>Total seconds as floating-point.</summary>
     public double TotalSeconds => (double)_ticks / TimeSpan.TicksPerSecond;

@@ -105,7 +105,9 @@ The parser and writer are designed to round-trip losslessly for the supported
 grammar (modulo whitespace inside the line that wasn't normalized at parse time).
 Specifically: voice markers, multi-timestamp lines, enhanced word timing,
 metadata block, and the verbatim `[offset:N]` tag all survive a parse → write
-cycle.
+cycle. Literal lyric text that itself contains valid LRC markers is interpreted
+as LRC syntax when parsed again; escape or filter such display text before
+authoring if you need it to remain plain.
 
 ```csharp
 var doc1 = LrcParser.Parse(source).Document;

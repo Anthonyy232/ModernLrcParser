@@ -45,6 +45,17 @@ public readonly partial struct LrcTimestamp
     /// <c>LRC0030</c> / <c>LRC0031</c> diagnostics without a second pass.</summary>
     internal static bool TryParseWithShape(ReadOnlySpan<char> s, out LrcTimestampShape shape)
     {
+        // Fast path for the canonical mm:ss.xx shape, which nearly every real file uses.
+        if (s is [var m1, var m2, ':', var s1, var s2, '.', var f1, var f2]
+            && char.IsAsciiDigit(m1) && char.IsAsciiDigit(m2) && s1 is >= '0' and <= '5' && char.IsAsciiDigit(s2)
+            && char.IsAsciiDigit(f1) && char.IsAsciiDigit(f2))
+        {
+            long ms = ((m1 - '0') * 10 + (m2 - '0')) * 60_000 + ((s1 - '0') * 10 + (s2 - '0')) * 1_000
+                + ((f1 - '0') * 10 + (f2 - '0')) * 10;
+            shape = new LrcTimestampShape(new LrcTimestamp(ms * TimeSpan.TicksPerMillisecond), IsCanonical: true, FractionLength: 2);
+            return true;
+        }
+
         shape = default;
         int fractionSeparator = s.IndexOfAny('.', ',');
         bool hasDecimal = fractionSeparator >= 0;

@@ -6,6 +6,15 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+### Performance
+
+- Parsing is about 35% faster than 1.2.0, reversing a 2.0.0 slowdown: canonical `mm:ss.xx`
+  timestamps take a fast path, the line list is pre-sized again, and metadata is built
+  once instead of copied per tag.
+- `LrcWriter.Write` to a string, `TextWriter`, `Stream`, byte buffer or file stages the
+  render in pooled memory, so it no longer allocates growth buffers. Writing is about 25%
+  faster than 1.2.0 with half the allocation, fixing a 2.0.0 regression.
+
 ## [2.0.0] — 2026-10-13
 
 ### Removed (breaking)

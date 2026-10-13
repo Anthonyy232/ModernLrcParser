@@ -37,7 +37,10 @@ public static partial class LrcWriter
     /// <returns>The fully-rendered LRC text.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="document"/> is null.</exception>
     public static string Write(LrcDocument document, LrcWriteOptions? options = null)
-        => new(RenderChars(document, options).WrittenSpan);
+    {
+        using var chars = RenderChars(document, options);
+        return new(chars.WrittenSpan);
+    }
 
     /// <summary>Render to a <see cref="TextWriter"/> via a single span write — no intermediate
     /// <see cref="string"/> allocation.</summary>
@@ -48,7 +51,8 @@ public static partial class LrcWriter
     public static void Write(LrcDocument document, TextWriter writer, LrcWriteOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(writer);
-        writer.Write(RenderChars(document, options).WrittenSpan);
+        using var chars = RenderChars(document, options);
+        writer.Write(chars.WrittenSpan);
     }
 
     /// <summary>Render to a <see cref="Stream"/> using <see cref="LrcWriteOptions.Encoding"/>
@@ -95,7 +99,7 @@ public static partial class LrcWriter
     {
         ArgumentNullException.ThrowIfNull(writer);
         options ??= LrcWriteOptions.Default;
-        var chars = RenderChars(document, options);
+        using var chars = RenderChars(document, options);
         if (options.EmitByteOrderMark) writer.Write(options.Encoding.Preamble);
         System.Text.EncodingExtensions.GetBytes(options.Encoding, chars.WrittenSpan, writer);
     }
@@ -111,7 +115,10 @@ public static partial class LrcWriter
     /// then copies into <paramref name="destination"/>. For zero-allocation rendering use the
     /// <see cref="IBufferWriter{T}"/> overload instead.</remarks>
     public static bool TryWrite(LrcDocument document, Span<char> destination, out int charsWritten, LrcWriteOptions? options = null)
-        => TryCopy(RenderChars(document, options).WrittenSpan, destination, out charsWritten);
+    {
+        using var chars = RenderChars(document, options);
+        return TryCopy(chars.WrittenSpan, destination, out charsWritten);
+    }
 
     /// <summary>Try-render into a fixed byte buffer using <see cref="LrcWriteOptions.Encoding"/>.</summary>
     /// <param name="document">The document to render.</param>
@@ -123,10 +130,10 @@ public static partial class LrcWriter
     public static bool TryWrite(LrcDocument document, Span<byte> destination, out int bytesWritten, LrcWriteOptions? options = null)
         => TryCopy(Encode(document, options), destination, out bytesWritten);
 
-    private static ArrayBufferWriter<char> RenderChars(LrcDocument document, LrcWriteOptions? options)
+    private static Internal.PooledCharBuffer RenderChars(LrcDocument document, LrcWriteOptions? options)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var buffer = new ArrayBufferWriter<char>();
+        var buffer = new Internal.PooledCharBuffer();
         Internal.LrcSpanRenderer.Render(document, buffer, options ?? LrcWriteOptions.Default);
         return buffer;
     }
@@ -135,7 +142,8 @@ public static partial class LrcWriter
     private static byte[] Encode(LrcDocument document, LrcWriteOptions? options)
     {
         options ??= LrcWriteOptions.Default;
-        var chars = RenderChars(document, options).WrittenSpan;
+        using var rendered = RenderChars(document, options);
+        var chars = rendered.WrittenSpan;
         var preamble = options.EmitByteOrderMark ? options.Encoding.Preamble : default;
         var bytes = new byte[preamble.Length + options.Encoding.GetByteCount(chars)];
         preamble.CopyTo(bytes);

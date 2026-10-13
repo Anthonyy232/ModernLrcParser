@@ -34,15 +34,14 @@ internal ref partial struct LrcScanner
             return;
         }
 
-        int bit = 1 << (int)field;
-        if ((_seenFields & bit) != 0)
+        ref object? slot = ref _fields[(int)field];
+        if (slot is not null)
         {
-            var (severity, code) = Equals(LrcMetadataFields.Get(_metadata, field), parsed)
+            var (severity, code) = Equals(slot, parsed)
                 ? (LrcDiagnosticSeverity.Info, LrcDiagnosticIds.DuplicateMetadata)
                 : (LrcDiagnosticSeverity.Warning, LrcDiagnosticIds.ConflictingMetadata);
             _diag.Emit(severity, code, line, column, length, $"Repeated metadata key '{key}'.");
         }
-        _seenFields |= bit;
-        _metadata = LrcMetadataFields.With(_metadata, field, parsed);
+        slot = parsed;
     }
 }

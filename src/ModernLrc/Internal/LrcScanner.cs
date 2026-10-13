@@ -13,15 +13,14 @@ internal ref partial struct LrcScanner
     /// <summary><see cref="long.MaxValue"/> when implausibility detection is disabled.</summary>
     private readonly long _implausibleTicks;
 
-    private readonly List<LrcLine> _lines = new();
+    private readonly List<LrcLine> _lines;
     private readonly List<LrcTag> _rawTags = new();
     // Scratch lists reused across lines; their contents are copied out before the next Clear().
     private readonly List<LrcTimestamp> _stampScratch = new(2);
     private readonly List<LrcWord> _wordScratch = new(4);
 
-    private LrcMetadata _metadata = LrcMetadata.Empty;
-    /// <summary>Bit per <see cref="LrcMetadataField"/> already set, for duplicate/conflict diagnostics.</summary>
-    private int _seenFields;
+    /// <summary>Parsed value per <see cref="LrcMetadataField"/>; null until the tag is seen.</summary>
+    private readonly object?[] _fields = new object?[LrcMetadataFields.Count];
 
     private LrcVoice _currentVoice = LrcVoice.Default;
 
@@ -32,6 +31,8 @@ internal ref partial struct LrcScanner
         _implausibleTicks = options.ImplausibleTimestampThreshold > TimeSpan.Zero
             ? options.ImplausibleTimestampThreshold.Ticks
             : long.MaxValue;
+        // Typical lines run 25-30 chars; pre-sizing avoids repeated list growth.
+        _lines = new List<LrcLine>(Math.Max(4, source.Length / 24));
     }
 
     public LrcParseResult Run()
@@ -55,7 +56,7 @@ internal ref partial struct LrcScanner
         {
             Document = new LrcDocument
             {
-                Metadata = _metadata with { RawTags = ImmutableArray.CreateRange(_rawTags) },
+                Metadata = LrcMetadataFields.Create(_fields, ImmutableArray.CreateRange(_rawTags)),
                 Lines = ImmutableCollectionsMarshal.AsImmutableArray(sorted),
             },
             Diagnostics = _diag.ToImmutableArray(),

@@ -45,6 +45,22 @@ internal static class LrcMetadataFields
         }
     }
 
+    /// <summary>Build metadata from one parsed value per field, indexed by <see cref="LrcMetadataField"/>.</summary>
+    public static LrcMetadata Create(ReadOnlySpan<object?> fields, EquatableArray<LrcTag> rawTags) => new()
+    {
+        Title = (string?)fields[(int)LrcMetadataField.Title],
+        Artist = (string?)fields[(int)LrcMetadataField.Artist],
+        Album = (string?)fields[(int)LrcMetadataField.Album],
+        Author = (string?)fields[(int)LrcMetadataField.Author],
+        Lyricist = (string?)fields[(int)LrcMetadataField.Lyricist],
+        Length = (TimeSpan?)fields[(int)LrcMetadataField.Length],
+        CreatedBy = (string?)fields[(int)LrcMetadataField.CreatedBy],
+        Offset = (TimeSpan?)fields[(int)LrcMetadataField.Offset] ?? TimeSpan.Zero,
+        Tool = (string?)fields[(int)LrcMetadataField.Tool],
+        Version = (string?)fields[(int)LrcMetadataField.Version],
+        RawTags = rawTags,
+    };
+
     /// <summary>The property value; for <see cref="LrcMetadataField.Offset"/> an unset value is <see cref="TimeSpan.Zero"/>.</summary>
     public static object? Get(LrcMetadata m, LrcMetadataField field) => field switch
     {

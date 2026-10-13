@@ -16,12 +16,7 @@ public static partial class LrcParser
     {
         options ??= LrcParseOptions.Default;
         var emitter = new LrcDiagnosticEmitter(options);
-        var decoded = EncodingDetector.Decode(input, options, emitter);
-        var scanner = new LrcScanner(decoded.AsSpan(), options, emitter);
-        var result = scanner.Run();
-        if (emitter.IsStrict && emitter.FirstError is not null)
-            throw new LrcParseException("Strict-mode parse failed.", result, emitter.FirstError, filePath: null);
-        return result;
+        return Scan(EncodingDetector.Decode(input, options, emitter), options, emitter);
     }
 
     /// <summary>Parse a byte array (encoding pipeline applied — see the
@@ -37,8 +32,8 @@ public static partial class LrcParser
         return Parse((ReadOnlySpan<byte>)input, options);
     }
 
-    /// <summary>Parse a stream synchronously. Reads all bytes into memory first; for large
-    /// inputs prefer <see cref="ParseAsync(Stream, LrcParseOptions?, CancellationToken)"/>.</summary>
+    /// <summary>Parse a stream synchronously. Reads the remaining bytes into memory first; for
+    /// large inputs prefer <see cref="ParseAsync(Stream, LrcParseOptions?, CancellationToken)"/>.</summary>
     /// <param name="stream">Source stream; must be readable.</param>
     /// <param name="options">Parser options.</param>
     /// <returns>The parsed result.</returns>
@@ -47,29 +42,16 @@ public static partial class LrcParser
     /// <exception cref="LrcParseException">Encoding could not be detected, or strict-mode error.</exception>
     public static LrcParseResult Parse(Stream stream, LrcParseOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        options ??= LrcParseOptions.Default;
-
-        if (stream is MemoryStream ms && ms.TryGetBuffer(out var seg))
-            return ParseMemoryStreamBuffer(ms, seg, options);
-
+        ThrowIfNotReadable(stream);
         using var buffer = new MemoryStream();
-        stream.CopyTo(buffer, options.ReadBufferSize);
+        stream.CopyTo(buffer);
         return Parse(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), options);
     }
 
-    private static LrcParseResult ParseMemoryStreamBuffer(MemoryStream stream, ArraySegment<byte> segment, LrcParseOptions options)
+    private static void ThrowIfNotReadable(Stream stream)
     {
-        if (stream.Position >= stream.Length)
-            return Parse(ReadOnlySpan<byte>.Empty, options);
-
-        int offset = checked((int)stream.Position);
-        int count = checked((int)(stream.Length - stream.Position));
-        var remaining = segment.AsSpan(offset, count);
-        stream.Position = stream.Length;
-        return Parse(remaining, options);
+        ArgumentNullException.ThrowIfNull(stream);
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
     }
 
     /// <summary>Parse a file at <paramref name="path"/> synchronously. Annotates strict-mode
@@ -91,17 +73,24 @@ public static partial class LrcParser
     /// </example>
     public static LrcParseResult ParseFile(string path, LrcParseOptions? options = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentException("Path is required.", nameof(path));
-        options ??= LrcParseOptions.Default;
+        ThrowIfInvalidPath(path);
+        var bytes = File.ReadAllBytes(path);
         try
         {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, options.ReadBufferSize);
-            return Parse(fs, options);
+            return Parse(bytes, options);
         }
-        catch (LrcParseException ex) when (ex.FilePath is null)
+        catch (LrcParseException ex)
         {
-            throw new LrcParseException(ex.Message, ex.PartialResult, ex.FirstError, path);
+            throw WithPath(ex, path);
         }
     }
+
+    private static void ThrowIfInvalidPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Path is required.", nameof(path));
+    }
+
+    private static LrcParseException WithPath(LrcParseException ex, string path)
+        => new(ex.Message, ex.PartialResult, ex.FirstError, path);
 }

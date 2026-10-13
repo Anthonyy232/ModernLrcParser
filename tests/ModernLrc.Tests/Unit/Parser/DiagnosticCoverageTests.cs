@@ -5,6 +5,16 @@ namespace ModernLrc.Tests.Unit.Parser;
 
 public sealed class DiagnosticCoverageTests
 {
+    [Theory]
+    [InlineData("[ti:Untitled")]
+    [InlineData("[00:01.00 hello")]
+    public void LRC0001_UnclosedTag_EmittedAsError(string input)
+    {
+        var result = LrcParser.Parse(input);
+        result.Diagnostics.ShouldContain(d =>
+            d.Code == LrcDiagnosticIds.UnclosedTag && d.Severity == LrcDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void LRC0004_UnknownIdTag_EmittedAsInfo()
     {
@@ -30,18 +40,18 @@ public sealed class DiagnosticCoverageTests
     }
 
     [Fact]
-    public void LRC0007_InvalidEnhancedTimestamp_EmittedAsError()
+    public void LRC0007_And_LRC0080_InvalidEnhancedTimestamp_WithNoValidWords()
     {
-        // <bad> inside an enhanced line — "bad" is not a valid timestamp.
         var result = LrcParser.Parse("[00:01.00]<bad>text");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.InvalidEnhancedTimestamp && d.Severity == LrcDiagnosticSeverity.Error);
+        result.Diagnostics.ShouldContain(d =>
+            d.Code == LrcDiagnosticIds.EmptyEnhancedWord && d.Severity == LrcDiagnosticSeverity.Info);
     }
 
     [Fact]
     public void LRC0008_UnclosedEnhancedTimestamp_EmittedAsError()
     {
-        // '<' with no closing '>' before EOL.
         var result = LrcParser.Parse("[00:01.00]<00:01.00 incomplete");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.UnclosedEnhancedTimestamp && d.Severity == LrcDiagnosticSeverity.Error);
@@ -50,16 +60,35 @@ public sealed class DiagnosticCoverageTests
     [Fact]
     public void LRC0009_EmptyTimestamp_EmittedAsWarning()
     {
-        // '[]' before a valid timestamp on the same line.
         var result = LrcParser.Parse("[][00:01.00]hello");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.EmptyTimestamp && d.Severity == LrcDiagnosticSeverity.Warning);
     }
 
+    [Theory]
+    [InlineData("[00:01.0001]hi")]
+    [InlineData("[01:23,4567]hi")]
+    [InlineData("[00:23:4567]hi")]
+    [InlineData("[1:02:33,4567]hi")]
+    [InlineData("[1:02:33:4567]hi")]
+    [InlineData("[00:01.00]<00:01,4567>word")]
+    public void LRC0031_TruncatedPrecision_EmittedForEveryFractionSeparator(string source)
+    {
+        var result = LrcParser.Parse(source);
+        result.HasErrors.ShouldBeFalse();
+        result.Diagnostics.ShouldContain(d => d.Code == LrcDiagnosticIds.TruncatedPrecision);
+    }
+
+    [Fact]
+    public void LRC0031_NotEmittedForThreeDigitFraction()
+    {
+        var result = LrcParser.Parse("[01:23,450]hi");
+        result.Diagnostics.ShouldNotContain(d => d.Code == LrcDiagnosticIds.TruncatedPrecision);
+    }
+
     [Fact]
     public void LRC0050_DroppedUntimedText_EmittedAsInfo()
     {
-        // A line with no timestamp is dropped and LRC0050 is emitted.
         var result = LrcParser.Parse("free text without any timestamps\n[00:01.00]ok");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.DroppedUntimedText && d.Severity == LrcDiagnosticSeverity.Info);
@@ -68,7 +97,6 @@ public sealed class DiagnosticCoverageTests
     [Fact]
     public void LRC0051_TimestampWithoutText_EmittedAsWarning()
     {
-        // First line has a timestamp but nothing follows it before the newline.
         var result = LrcParser.Parse("[00:01.00]\n[00:02.00]world");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.TimestampWithoutText && d.Severity == LrcDiagnosticSeverity.Warning);
@@ -77,30 +105,26 @@ public sealed class DiagnosticCoverageTests
     [Fact]
     public void LRC0070_ImplausibleTimestamp_EmittedAsInfo()
     {
-        // 1500 minutes = 25 hours, exceeds the default 24 h threshold.
-        // The check only runs when ImplausibleTimestampThreshold > TimeSpan.Zero (the default is 24 h).
+        // 1500 minutes = 25 hours, past the default 24 h threshold.
         var result = LrcParser.Parse("[1500:00.00]way too late");
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.ImplausibleTimestamp && d.Severity == LrcDiagnosticSeverity.Info);
     }
 
     [Fact]
-    public void LRC0080_EmptyEnhancedWord_EmittedAsInfo()
-    {
-        // <bad> fails to parse as a timestamp (LRC0007 fires, word is skipped).
-        // Because no words succeed, LRC0080 fires as well.
-        var result = LrcParser.Parse("[00:01.00]<bad>text");
-        result.Diagnostics.ShouldContain(d =>
-            d.Code == LrcDiagnosticIds.EmptyEnhancedWord && d.Severity == LrcDiagnosticSeverity.Info);
-    }
-
-    [Fact]
     public void LRC0099_MaxDiagnosticsReached_EmittedOnceWhenCapHit()
     {
-        // 10 malformed ID tags each emit LRC0003; cap at 2 forces LRC0099 on the third.
         var input = string.Join("\n", Enumerable.Repeat("[bad-ts]junk", 10));
         var options = new LrcParseOptions { MaxDiagnostics = 2 };
         var result = LrcParser.Parse(input, options);
         result.Diagnostics.Count(d => d.Code == LrcDiagnosticIds.MaxDiagnosticsReached).ShouldBe(1);
+    }
+
+    [Fact]
+    public void MaxDiagnostics_Zero_SuppressesEverythingIncludingCapNotice()
+    {
+        var options = new LrcParseOptions { MaxDiagnostics = 0 };
+        var result = LrcParser.Parse("[bad]a\n[also-bad]b", options);
+        result.Diagnostics.ShouldBeEmpty();
     }
 }

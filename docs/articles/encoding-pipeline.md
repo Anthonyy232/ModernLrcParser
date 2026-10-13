@@ -24,11 +24,12 @@ it runs a four-step pipeline to decide how to decode them:
 | Option | Default |
 |---|---|
 | `Encoding` | `null` (auto-detect) |
-| `FallbackEncoding` | `Encoding.UTF8` |
+| `FallbackEncoding` | `Encoding.Latin1` |
 
-So the out-of-the-box behaviour is: BOM → UTF-8 strict → UTF-8 fallback (which always
-succeeds — Latin-1 bytes get replaced with the replacement char). Most files round-trip
-correctly.
+So the out-of-the-box behaviour is: BOM → UTF-8 strict → Latin-1 fallback. Latin-1 maps
+every byte to a char, so decoding always succeeds and nothing is replaced with U+FFFD;
+Western European files (e.g. Windows-1252 `é`) come through intact, and `LRC0010` tells
+you the fallback was used. For other legacy codepages, set `Encoding` (below).
 
 ## Non-Unicode codepages
 
@@ -77,11 +78,10 @@ so callers can audit the input shape if needed.
 
 The writer's encoding is configured via
 [`LrcWriteOptions.Encoding`](xref:ModernLrc.LrcWriteOptions.Encoding) (default
-UTF-8 *no BOM*) and
+UTF-8) and
 [`LrcWriteOptions.EmitByteOrderMark`](xref:ModernLrc.LrcWriteOptions.EmitByteOrderMark)
 (sole BOM control — set `true` to prepend the encoding's preamble; set `false`
 to skip it regardless of the encoding's natural BOM).
 
 Stream, `IBufferWriter<byte>`, and fixed `Span<byte>` outputs honor
-`LrcWriteOptions.Encoding`. When that encoding is UTF-8, those byte paths take
-a fast path that renders directly into bytes — no intermediate string allocation.
+`LrcWriteOptions.Encoding`: the document is rendered to chars once, then encoded.

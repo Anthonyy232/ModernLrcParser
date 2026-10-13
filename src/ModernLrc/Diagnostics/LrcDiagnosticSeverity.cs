@@ -1,10 +1,7 @@
 namespace ModernLrc.Diagnostics;
 
 /// <summary>Severity of a diagnostic emitted by the parser or writer.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design", "CA1028:Enum storage should be Int32",
-    Justification = "byte is intentional — diagnostics are emitted in tight loops; saving 3 bytes per occurrence matters at scale.")]
-public enum LrcDiagnosticSeverity : byte
+public enum LrcDiagnosticSeverity
 {
     /// <summary>Informational; never prevents successful parse/write.</summary>
     Info = 0,

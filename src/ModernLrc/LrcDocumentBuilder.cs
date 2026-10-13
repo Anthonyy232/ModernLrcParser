@@ -35,16 +35,7 @@ public sealed class LrcDocumentBuilder
     private readonly List<LrcLine> _lines = new();
     private readonly List<LrcTag> _rawTags = new();
 
-    private string? _title;
-    private string? _artist;
-    private string? _album;
-    private string? _author;
-    private string? _lyricist;
-    private string? _createdBy;
-    private string? _tool;
-    private string? _version;
-    private TimeSpan? _length;
-    private TimeSpan _offset;
+    private LrcMetadata _metadata = LrcMetadata.Empty;
 
     /// <summary>Empty builder.</summary>
     public LrcDocumentBuilder() { }
@@ -53,16 +44,7 @@ public sealed class LrcDocumentBuilder
     public LrcDocumentBuilder(LrcDocument source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        _title = source.Metadata.Title;
-        _artist = source.Metadata.Artist;
-        _album = source.Metadata.Album;
-        _author = source.Metadata.Author;
-        _lyricist = source.Metadata.Lyricist;
-        _createdBy = source.Metadata.CreatedBy;
-        _tool = source.Metadata.Tool;
-        _version = source.Metadata.Version;
-        _length = source.Metadata.Length;
-        _offset = source.Metadata.Offset;
+        _metadata = source.Metadata;
         _rawTags.AddRange(source.Metadata.RawTags);
         _lines.AddRange(source.Lines);
     }
@@ -71,53 +53,49 @@ public sealed class LrcDocumentBuilder
     public int LineCount => _lines.Count;
 
     /// <summary>Get a line in insertion order. Use <see cref="Build"/> to retrieve sorted output.</summary>
-    public LrcLine GetLineAt(int index)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _lines.Count);
-        return _lines[index];
-    }
-
-    // ----- Metadata fluent setters -----
+    public LrcLine GetLineAt(int index) => _lines[index];
 
     /// <summary>Set or clear the title (<c>ti</c>).</summary>
-    public LrcDocumentBuilder WithTitle(string? value) { _title = value; RemoveRawTags("ti"); return this; }
+    public LrcDocumentBuilder WithTitle(string? value) => Set(LrcMetadataField.Title, value);
 
     /// <summary>Set or clear the artist (<c>ar</c>).</summary>
-    public LrcDocumentBuilder WithArtist(string? value) { _artist = value; RemoveRawTags("ar"); return this; }
+    public LrcDocumentBuilder WithArtist(string? value) => Set(LrcMetadataField.Artist, value);
 
     /// <summary>Set or clear the album (<c>al</c>).</summary>
-    public LrcDocumentBuilder WithAlbum(string? value) { _album = value; RemoveRawTags("al"); return this; }
+    public LrcDocumentBuilder WithAlbum(string? value) => Set(LrcMetadataField.Album, value);
 
     /// <summary>Set or clear the author (<c>au</c>).</summary>
-    public LrcDocumentBuilder WithAuthor(string? value) { _author = value; RemoveRawTags("au"); return this; }
+    public LrcDocumentBuilder WithAuthor(string? value) => Set(LrcMetadataField.Author, value);
 
     /// <summary>Set or clear the lyricist (<c>lr</c>).</summary>
-    public LrcDocumentBuilder WithLyricist(string? value) { _lyricist = value; RemoveRawTags("lr"); return this; }
+    public LrcDocumentBuilder WithLyricist(string? value) => Set(LrcMetadataField.Lyricist, value);
 
     /// <summary>Set or clear the created-by attribution (<c>by</c>).</summary>
-    public LrcDocumentBuilder WithCreatedBy(string? value) { _createdBy = value; RemoveRawTags("by"); return this; }
+    public LrcDocumentBuilder WithCreatedBy(string? value) => Set(LrcMetadataField.CreatedBy, value);
 
     /// <summary>Set or clear the tool (<c>re</c> / <c>tool</c>).</summary>
-    public LrcDocumentBuilder WithTool(string? value) { _tool = value; RemoveRawTags("re", "tool"); return this; }
+    public LrcDocumentBuilder WithTool(string? value) => Set(LrcMetadataField.Tool, value);
 
     /// <summary>Set or clear the version (<c>ve</c>).</summary>
-    public LrcDocumentBuilder WithVersion(string? value) { _version = value; RemoveRawTags("ve"); return this; }
+    public LrcDocumentBuilder WithVersion(string? value) => Set(LrcMetadataField.Version, value);
 
     /// <summary>Set or clear the track length (<c>length:mm:ss</c>).</summary>
-    public LrcDocumentBuilder WithLength(TimeSpan? value) { _length = value; RemoveRawTags("length"); return this; }
+    public LrcDocumentBuilder WithLength(TimeSpan? value) => Set(LrcMetadataField.Length, value);
 
     /// <summary>Set the document offset (<c>offset:±N</c> ms).</summary>
-    public LrcDocumentBuilder WithOffset(TimeSpan value) { _offset = value; RemoveRawTags("offset"); return this; }
+    public LrcDocumentBuilder WithOffset(TimeSpan value) => Set(LrcMetadataField.Offset, value);
 
     /// <summary>Append a raw tag entry (preserves insertion order).
     /// <paramref name="key"/> must be non-empty (whitespace-only is rejected — it would round-trip
-    /// to <c>[ :value]</c> which the parser cannot read back).</summary>
+    /// to <c>[ :value]</c> which the parser cannot read back). As in the parser, a known key
+    /// (<c>ti</c>, <c>length</c>, …) also sets the matching typed property.</summary>
     public LrcDocumentBuilder WithRawTag(string key, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
         _rawTags.Add(new LrcTag(key, value));
+        if (LrcMetadataFields.FromKey(key) is { } field && LrcMetadataFields.TryParse(field, value, out var parsed))
+            _metadata = LrcMetadataFields.With(_metadata, field, parsed);
         return this;
     }
 
@@ -129,43 +107,25 @@ public sealed class LrcDocumentBuilder
         return this;
     }
 
-    private void RemoveRawTags(string key)
-        => _rawTags.RemoveAll(t => string.Equals(t.Key, key, StringComparison.Ordinal));
-
-    private void RemoveRawTags(string key1, string key2)
-        => _rawTags.RemoveAll(t =>
-            string.Equals(t.Key, key1, StringComparison.Ordinal)
-            || string.Equals(t.Key, key2, StringComparison.Ordinal));
-
-    // ----- Plain line addition -----
-
-    /// <summary>Add a plain line whose timestamp is parsed from <paramref name="timestamp"/>.</summary>
-    public LrcDocumentBuilder AddLine(string timestamp, string text, LrcVoice voice = LrcVoice.Default)
+    /// <summary>Set a typed property and drop the raw tags it replaces.</summary>
+    private LrcDocumentBuilder Set(LrcMetadataField field, object? value)
     {
-        ArgumentNullException.ThrowIfNull(timestamp);
-        ArgumentNullException.ThrowIfNull(text);
-        return AddLine(LrcTimestamp.Parse(timestamp, CultureInfo.InvariantCulture), text, voice);
-    }
-
-    /// <summary>Add a plain line at <paramref name="timestamp"/>.</summary>
-    public LrcDocumentBuilder AddLine(LrcTimestamp timestamp, string text, LrcVoice voice = LrcVoice.Default)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        _lines.Add(new LrcPlainLine
-        {
-            Timestamp = timestamp,
-            Text = text,
-            EffectiveVoice = voice,
-        });
+        _metadata = LrcMetadataFields.With(_metadata, field, value);
+        _rawTags.RemoveAll(t => LrcMetadataFields.FromKey(t.Key) == field);
         return this;
     }
 
+    /// <summary>Add a plain line whose timestamp is parsed from <paramref name="timestamp"/>.</summary>
+    public LrcDocumentBuilder AddLine(string timestamp, string text, LrcVoice voice = LrcVoice.Default)
+        => AddLine(LrcTimestamp.Parse(timestamp, CultureInfo.InvariantCulture), text, voice);
+
+    /// <summary>Add a plain line at <paramref name="timestamp"/>.</summary>
+    public LrcDocumentBuilder AddLine(LrcTimestamp timestamp, string text, LrcVoice voice = LrcVoice.Default)
+        => AddLineGroup([timestamp], text, voice);
+
     /// <summary>Add a plain line at <paramref name="timestamp"/> (TimeSpan overload).</summary>
     public LrcDocumentBuilder AddLine(TimeSpan timestamp, string text, LrcVoice voice = LrcVoice.Default)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        return AddLine(LrcTimestamp.FromTimeSpan(timestamp), text, voice);
-    }
+        => AddLine(LrcTimestamp.FromTimeSpan(timestamp), text, voice);
 
     /// <summary>Add the same plain text at multiple timestamps. Each timestamp produces its own
     /// <see cref="LrcPlainLine"/> sharing the same <paramref name="text"/> reference. The writer's
@@ -176,29 +136,19 @@ public sealed class LrcDocumentBuilder
         ArgumentNullException.ThrowIfNull(text);
         if (timestamps.IsEmpty) throw new ArgumentException("At least one timestamp is required.", nameof(timestamps));
         foreach (var t in timestamps)
-        {
-            _lines.Add(new LrcPlainLine
-            {
-                Timestamp = t,
-                Text = text,
-                EffectiveVoice = voice,
-            });
-        }
+            _lines.Add(new LrcPlainLine { Timestamp = t, Text = text, EffectiveVoice = voice });
         return this;
     }
 
-    // ----- Enhanced line addition -----
-
     /// <summary>Add an enhanced (word-timed) line at a single timestamp.</summary>
     public LrcDocumentBuilder AddEnhancedLine(LrcTimestamp lineTimestamp, ReadOnlySpan<LrcWord> words, LrcVoice voice = LrcVoice.Default)
-        => AddEnhancedLineCore(lineTimestamp, EquatableArray.Create(words), voice);
+        => AddEnhancedLineGroup([lineTimestamp], words, voice);
 
     /// <summary>Add an enhanced (word-timed) line from a tuple sequence.</summary>
     public LrcDocumentBuilder AddEnhancedLine(LrcTimestamp lineTimestamp, IEnumerable<(LrcTimestamp Time, string Text)> words, LrcVoice voice = LrcVoice.Default)
     {
         ArgumentNullException.ThrowIfNull(words);
-        return AddEnhancedLineCore(lineTimestamp,
-            EquatableArray.Create(words.Select(static w => new LrcWord(w.Time, w.Text))), voice);
+        return AddEnhancedLine(lineTimestamp, words.Select(static w => new LrcWord(w.Time, w.Text)).ToArray(), voice);
     }
 
     /// <summary>Add the same enhanced line content at multiple top-level timestamps. Each timestamp
@@ -207,41 +157,15 @@ public sealed class LrcDocumentBuilder
     {
         if (lineTimestamps.IsEmpty)
             throw new ArgumentException("At least one timestamp is required.", nameof(lineTimestamps));
-        var wordsArr = EquatableArray.Create(words);
-        ValidateWords(wordsArr);
+        foreach (var w in words)
+        {
+            // default(LrcWord) has a null Text.
+            if (w.Text is null) throw new ArgumentException("LrcWord.Text cannot be null.", nameof(words));
+        }
+        var shared = EquatableArray.Create(words);
         foreach (var t in lineTimestamps)
-        {
-            _lines.Add(new LrcEnhancedLine
-            {
-                Timestamp = t,
-                Words = wordsArr,
-                EffectiveVoice = voice,
-            });
-        }
+            _lines.Add(new LrcEnhancedLine { Timestamp = t, Words = shared, EffectiveVoice = voice });
         return this;
-    }
-
-    private LrcDocumentBuilder AddEnhancedLineCore(LrcTimestamp timestamp, EquatableArray<LrcWord> words, LrcVoice voice)
-    {
-        ValidateWords(words);
-        _lines.Add(new LrcEnhancedLine
-        {
-            Timestamp = timestamp,
-            Words = words,
-            EffectiveVoice = voice,
-        });
-        return this;
-    }
-
-    private static void ValidateWords(EquatableArray<LrcWord> words)
-    {
-        // Single chokepoint for null-Text validation — catches both default(LrcWord) from span
-        // callers and any null tuple-Text from the IEnumerable path.
-        foreach (var w in words.AsSpan())
-        {
-            if (w.Text is null)
-                throw new ArgumentException("LrcWord.Text cannot be null.", nameof(words));
-        }
     }
 
     /// <summary>Append a fully-constructed <see cref="LrcLine"/> (reference held; records are immutable).</summary>
@@ -261,8 +185,6 @@ public sealed class LrcDocumentBuilder
         return this;
     }
 
-    // ----- Manipulation -----
-
     /// <summary>Drop both lines and metadata.</summary>
     public LrcDocumentBuilder Clear()
     {
@@ -281,9 +203,7 @@ public sealed class LrcDocumentBuilder
     /// <summary>Drop all metadata (lines kept).</summary>
     public LrcDocumentBuilder ClearMetadata()
     {
-        _title = _artist = _album = _author = _lyricist = _createdBy = _tool = _version = null;
-        _length = null;
-        _offset = TimeSpan.Zero;
+        _metadata = LrcMetadata.Empty;
         _rawTags.Clear();
         return this;
     }
@@ -298,67 +218,35 @@ public sealed class LrcDocumentBuilder
     /// or the addition overflowed.</exception>
     public LrcDocumentBuilder ShiftAll(TimeSpan delta)
     {
-        // Pass 1: validate non-negative result for every timestamp.
-        // Convert overflow (e.g., delta = TimeSpan.MinValue) into the same
-        // ArgumentOutOfRangeException contract for callers.
+        // Shift into a new list and swap it in only on success, so a failure leaves the builder unchanged.
+        List<LrcLine> shifted;
         try
         {
-            foreach (var line in _lines)
+            shifted = _lines.ConvertAll<LrcLine>(line => line switch
             {
-                if (checked(line.Timestamp.Ticks + delta.Ticks) < 0)
-                    throw new ArgumentOutOfRangeException(nameof(delta),
-                        "ShiftAll would produce a negative timestamp. Adjust Metadata.Offset instead.");
-                if (line is LrcEnhancedLine enhanced)
+                LrcPlainLine p => p with { Timestamp = p.Timestamp + delta },
+                LrcEnhancedLine e => e with
                 {
-                    foreach (var word in enhanced.Words)
-                        if (checked(word.Timestamp.Ticks + delta.Ticks) < 0)
-                            throw new ArgumentOutOfRangeException(nameof(delta),
-                                "ShiftAll would produce a negative word timestamp. Adjust Metadata.Offset instead.");
-                }
-            }
+                    Timestamp = e.Timestamp + delta,
+                    Words = EquatableArray.Create(e.Words.Select(w => w with { Timestamp = w.Timestamp + delta })),
+                },
+                _ => throw new UnreachableException("LrcLine hierarchy is sealed."),
+            });
         }
         catch (OverflowException)
         {
             throw new ArgumentOutOfRangeException(nameof(delta),
-                "ShiftAll delta produced an arithmetic overflow.");
+                "ShiftAll would produce a negative or overflowing timestamp. Adjust Metadata.Offset instead.");
         }
 
-        // Pass 2: rebuild every line with shifted values.
-        for (int i = 0; i < _lines.Count; i++)
-        {
-            var line = _lines[i];
-            var shifted = line.Timestamp + delta;
-            _lines[i] = line switch
-            {
-                LrcPlainLine p => p with { Timestamp = shifted },
-                LrcEnhancedLine e => e with
-                {
-                    Timestamp = shifted,
-                    Words = ShiftWords(e.Words, delta),
-                },
-#pragma warning disable CS8509
-                // Justification: LrcLine hierarchy is sealed (private protected constructor);
-                // LrcPlainLine and LrcEnhancedLine are the only two concrete types.
-                _ => throw new UnreachableException("LrcLine hierarchy is sealed."),
-#pragma warning restore CS8509
-            };
-        }
+        _lines.Clear();
+        _lines.AddRange(shifted);
         return this;
-    }
-
-    private static EquatableArray<LrcWord> ShiftWords(EquatableArray<LrcWord> words, TimeSpan delta)
-    {
-        var arr = new LrcWord[words.Count];
-        for (int i = 0; i < words.Count; i++)
-            arr[i] = words[i] with { Timestamp = words[i].Timestamp + delta };
-        return ImmutableArray.Create(arr);
     }
 
     /// <summary>Remove the line at <paramref name="index"/> (insertion order).</summary>
     public LrcDocumentBuilder RemoveLineAt(int index)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _lines.Count);
         _lines.RemoveAt(index);
         return this;
     }
@@ -367,15 +255,13 @@ public sealed class LrcDocumentBuilder
     public LrcDocumentBuilder RemoveLinesWhere(Func<LrcLine, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        _lines.RemoveAll(l => predicate(l));
+        _lines.RemoveAll(predicate.Invoke);
         return this;
     }
 
     /// <summary>Replace the line at <paramref name="index"/> (insertion order).</summary>
     public LrcDocumentBuilder ReplaceLine(int index, LrcLine replacement)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _lines.Count);
         ArgumentNullException.ThrowIfNull(replacement);
         _lines[index] = replacement;
         return this;
@@ -385,31 +271,10 @@ public sealed class LrcDocumentBuilder
     /// (stable: ties resolved by insertion order). Idempotent — does not mutate the builder.</summary>
     /// <returns>A fresh immutable document. Calling <see cref="Build"/> again after further
     /// fluent calls produces an updated document; the builder stays usable.</returns>
-    /// <remarks>The sort takes a fast O(N) path when lines were added in ascending timestamp
-    /// order (the common case); otherwise an indexed stable sort is used.</remarks>
     public LrcDocument Build()
-    {
-        var metadata = new LrcMetadata
+        => new()
         {
-            Title = _title,
-            Artist = _artist,
-            Album = _album,
-            Author = _author,
-            Lyricist = _lyricist,
-            CreatedBy = _createdBy,
-            Tool = _tool,
-            Version = _version,
-            Length = _length,
-            Offset = _offset,
-            RawTags = ImmutableArray.CreateRange(_rawTags),
+            Metadata = _metadata with { RawTags = ImmutableArray.CreateRange(_rawTags) },
+            Lines = ImmutableCollectionsMarshal.AsImmutableArray(LrcLineStableSort.Sort(_lines, out _)),
         };
-
-        var sorted = LrcLineStableSort.Sort(_lines, out _);
-
-        return new LrcDocument
-        {
-            Metadata = metadata,
-            Lines = ImmutableCollectionsMarshal.AsImmutableArray(sorted),
-        };
-    }
 }

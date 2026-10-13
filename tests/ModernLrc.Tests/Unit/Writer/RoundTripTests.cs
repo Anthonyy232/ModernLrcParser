@@ -53,6 +53,27 @@ public sealed class RoundTripTests
     }
 
     [Fact]
+    public void ScatteredMultiTimestampGroup_RoundTripsAsSeparateLines_KeepingVoice()
+    {
+        // Sorting interleaves the 01s/05s group with the 02s/03s lines, so the writer
+        // (which only collapses adjacent lines) emits 05s on its own line.
+        const string input =
+            "[00:01.00][00:05.00]F: she sings\n" +
+            "[00:02.00]still hers\n" +
+            "[00:03.00]M: now him\n";
+
+        var reparsed = LrcParser.Parse(LrcWriter.Write(LrcParser.Parse(input).Document)).Document;
+
+        reparsed.Lines.Select(l => (l.Timestamp.TotalMilliseconds, l.GetText(), l.EffectiveVoice)).ShouldBe(
+        [
+            (1_000L, "she sings", LrcVoice.Female),
+            (2_000L, "still hers", LrcVoice.Female),
+            (3_000L, "now him", LrcVoice.Male),
+            (5_000L, "she sings", LrcVoice.Female),
+        ]);
+    }
+
+    [Fact]
     public void Metadata_DuplicateTypedRawTags_RoundTrip()
     {
         const string input = "[ti:First]\n[ti:Last]\n[00:01.00]x";
@@ -80,5 +101,50 @@ public sealed class RoundTripTests
         reparsed.Document.Metadata.Title.ShouldBe("Edited");
         reparsed.Document.Metadata.RawTags.Count.ShouldBe(1);
         reparsed.Document.Metadata.RawTags[0].ShouldBe(new LrcTag("ti", "Edited"));
+    }
+
+    [Fact]
+    public void Metadata_WithExpressionEdit_WinsOverStaleRawTags()
+    {
+        var parsed = LrcParser.Parse("[ti:First]\n[ti:Old]\n[offset:+100]\n[xx:keep]\n[00:01.00]x").Document;
+        var edited = parsed with
+        {
+            Metadata = parsed.Metadata with { Title = "New", Offset = TimeSpan.FromMilliseconds(-50) },
+        };
+
+        string written = LrcWriter.Write(edited);
+
+        written.ShouldBe("[ti:New]\n[offset:-50]\n[xx:keep]\n\n[00:01.00]x\n");
+    }
+
+    [Fact]
+    public void Metadata_WithExpressionClear_DropsRawTags()
+    {
+        var parsed = LrcParser.Parse("[ti:Old]\n[00:01.00]x").Document;
+        var edited = parsed with { Metadata = parsed.Metadata with { Title = null } };
+
+        LrcWriter.Write(edited).ShouldBe("[00:01.00]x\n");
+    }
+
+    [Fact]
+    public void Metadata_UnparseableKnownTag_PreservedVerbatim()
+    {
+        var parsed = LrcParser.Parse("[length:abc]\n[00:01.00]x").Document;
+
+        LrcWriter.Write(parsed).ShouldBe("[length:abc]\n\n[00:01.00]x\n");
+    }
+
+    [Fact]
+    public void Metadata_BuilderRawKnownTag_SetsTypedProperty()
+    {
+        var doc = new LrcDocumentBuilder()
+            .WithRawTag("ti", "Raw")
+            .WithRawTag("length", "03:20")
+            .AddLine("00:01.00", "x")
+            .Build();
+
+        doc.Metadata.Title.ShouldBe("Raw");
+        doc.Metadata.Length.ShouldBe(TimeSpan.FromSeconds(200));
+        LrcWriter.Write(doc).ShouldBe("[ti:Raw]\n[length:03:20]\n\n[00:01.00]x\n");
     }
 }

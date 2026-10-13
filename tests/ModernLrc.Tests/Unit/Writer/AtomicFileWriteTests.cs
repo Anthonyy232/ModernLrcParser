@@ -4,53 +4,51 @@ namespace ModernLrc.Tests.Unit.Writer;
 
 public sealed class AtomicFileWriteTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"modernlrc-write-{Guid.NewGuid():N}.lrc");
+    private readonly string _dir = Directory.CreateDirectory(
+        Path.Combine(Path.GetTempPath(), $"modernlrc-write-{Guid.NewGuid():N}")).FullName;
 
-    public void Dispose()
+    private readonly LrcDocument _doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
+
+    public void Dispose() => Directory.Delete(_dir, recursive: true);
+
+    [Fact]
+    public void WriteFile_OverwritesExisting_AndLeavesNoTempFile()
     {
-        if (File.Exists(_path)) File.Delete(_path);
+        var dest = Path.Combine(_dir, "song.lrc");
+        File.WriteAllText(dest, "OLD");
+
+        LrcWriter.WriteFile(_doc, dest);
+
+        File.ReadAllText(dest).ShouldBe("[00:01.00]x\n");
+        Directory.GetFiles(_dir).ShouldBe([dest]);
     }
 
     [Fact]
-    public void WriteFile_CreatesFileAtomically()
+    public void WriteFile_FailedMove_CleansUpTempFile()
     {
-        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
-        LrcWriter.WriteFile(doc, _path);
-        File.ReadAllText(_path).ShouldBe("[00:01.00]x\n");
+        // A directory at the destination makes File.Move fail after the temp file is written.
+        var dest = Directory.CreateDirectory(Path.Combine(_dir, "destination")).FullName;
+
+        Record.Exception(() => LrcWriter.WriteFile(_doc, dest)).ShouldNotBeNull();
+
+        Directory.GetFiles(_dir).ShouldBeEmpty();
     }
 
     [Fact]
-    public void WriteFile_OverwritesExisting()
+    public async Task WriteFileAsync_FailedMove_CleansUpTempFile()
     {
-        File.WriteAllText(_path, "OLD");
-        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "new").Build();
-        LrcWriter.WriteFile(doc, _path);
-        File.ReadAllText(_path).ShouldBe("[00:01.00]new\n");
+        var dest = Directory.CreateDirectory(Path.Combine(_dir, "destination")).FullName;
+
+        (await Record.ExceptionAsync(() =>
+            LrcWriter.WriteFileAsync(_doc, dest, cancellationToken: TestContext.Current.CancellationToken).AsTask()))
+            .ShouldNotBeNull();
+
+        Directory.GetFiles(_dir).ShouldBeEmpty();
     }
 
     [Fact]
-    public void WriteFile_NoTmpFileLeftBehind_OnSuccess()
+    public void WriteFile_WhitespacePath_Throws()
     {
-        // Use a fresh empty directory so we can verify the only file present after a
-        // successful WriteFile is the destination — i.e. no scratch/temp file remained.
-        // The shared temp dir would be too noisy to assert against.
-        var dir = Path.Combine(Path.GetTempPath(), $"modernlrc-success-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var dest = Path.Combine(dir, "song.lrc");
-            var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
-
-            LrcWriter.WriteFile(doc, dest);
-
-            var files = Directory.GetFiles(dir);
-            files.Length.ShouldBe(1, "WriteFile success path must leave only the destination file behind.");
-            files[0].ShouldBe(dest);
-            File.ReadAllText(dest).ShouldBe("[00:01.00]x\n");
-        }
-        finally
-        {
-            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
-        }
+        Should.Throw<ArgumentException>(() => LrcWriter.WriteFile(_doc, "   "));
     }
 }

@@ -22,9 +22,6 @@ namespace ModernLrc;
 /// }
 /// </code>
 /// </example>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design", "CA1032:Implement standard exception constructors",
-    Justification = "Spec deliberately omits the inner-exception overload; only message-only and rich constructors are exposed by design.")]
 public sealed class LrcParseException : Exception
 {
     /// <summary>The partial result built up to the failure point, if any.</summary>

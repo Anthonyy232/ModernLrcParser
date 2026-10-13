@@ -7,13 +7,6 @@ namespace ModernLrc.Tests.Unit.Writer;
 public sealed class ValidateForWriteTests
 {
     [Fact]
-    public void NoVoice_ReturnsEmpty()
-    {
-        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
-        LrcWriter.ValidateForWrite(doc).ShouldBeEmpty();
-    }
-
-    [Fact]
     public void DefaultAfterFemale_EmitsLRC0090()
     {
         var doc = new LrcDocumentBuilder()

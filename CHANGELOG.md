@@ -4,6 +4,38 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed (breaking)
+
+- `LrcParseOptions.ReadBufferSize` and `LrcWriteOptions.InitialBufferSize`. Inputs
+  and outputs are small enough that the BCL defaults are fine.
+- `LrcWriter.EstimateSize` and `LrcWriter.EstimateByteSize`. They were heuristics that
+  duplicated the renderer; render with `Write` or an `IBufferWriter<T>` overload instead.
+- The public enums are no longer `byte`-backed.
+
+### Changed
+
+- `LrcParseOptions.FallbackEncoding` now defaults to `Encoding.Latin1`, which decodes
+  every byte losslessly. The previous default (`Encoding.UTF8`) re-decoded bytes that
+  had just failed UTF-8 validation, turning them into U+FFFD.
+- Typed metadata properties are now authoritative when writing. Raw tags of a known
+  key are written verbatim (keeping duplicates and order) only while they still agree
+  with the typed property, so `metadata with { Title = "New" }` is no longer ignored.
+- `LrcDocumentBuilder.WithRawTag` with a known key (`ti`, `length`, …) also sets the
+  matching typed property, as the parser does.
+- All writer sinks share one char renderer; byte sinks encode its output. The
+  separate UTF-8 byte renderer is gone.
+
+### Fixed
+
+- `LrcTimestamp.ToString` / `TryFormat` now throw `FormatException` for unsupported
+  format codes instead of silently formatting as `"G"`.
+- `LrcWriteOptions.EmitByteOrderMark = true` now writes a BOM with the default encoding.
+  The default was a BOM-less `UTF8Encoding`, so the option silently did nothing.
+- The build no longer fails on restore: Microsoft.SourceLink.GitHub is bumped past
+  GHSA-23fw-v26w-5fgq, and NuGet audit warnings no longer fail the build.
+
 ## [1.2.0] — 2026-05-02
 
 ### Changed

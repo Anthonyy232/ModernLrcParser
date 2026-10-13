@@ -1,4 +1,5 @@
 using ModernLrc;
+using ModernLrc.Diagnostics;
 
 namespace ModernLrc.Tests.Unit.Parser;
 
@@ -63,5 +64,16 @@ public sealed class StrictnessTests
 
         ex.FirstError.ShouldNotBeNull();
         ex.FirstError!.Code.ShouldBe("LRC0003");
+    }
+
+    [Theory]
+    [InlineData("[00:99.00]hello", LrcDiagnosticIds.InvalidTimestamp)]
+    [InlineData("[00:01.00]<bad>text", LrcDiagnosticIds.InvalidEnhancedTimestamp)]
+    [InlineData("[00:01.00]<00:01.00 oops", LrcDiagnosticIds.UnclosedEnhancedTimestamp)]
+    public void Strict_ThrowsOnEachErrorPath(string input, string expectedCode)
+    {
+        var options = new LrcParseOptions { Strictness = LrcStrictness.Strict };
+        var ex = Should.Throw<LrcParseException>(() => LrcParser.Parse(input, options));
+        ex.FirstError!.Code.ShouldBe(expectedCode);
     }
 }

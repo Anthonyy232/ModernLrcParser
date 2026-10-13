@@ -10,7 +10,11 @@ namespace ModernLrc.Model;
 /// round-trip fidelity: re-writing the document emits the original
 /// <c>[offset:N]</c> tag.</para>
 /// <para>The <c>tool</c> tag (used by some authoring software) maps to the same
-/// <see cref="Tool"/> property as <c>re</c>; last-wins across both keys.</para></remarks>
+/// <see cref="Tool"/> property as <c>re</c>; last-wins across both keys.</para>
+/// <para>The typed properties are authoritative when writing. Raw tags of a known key are
+/// written verbatim only while they still agree with the typed property; after an edit such as
+/// <c>metadata with { Title = "New" }</c>, the stale raw <c>ti</c> tags are dropped and the
+/// new value is written.</para></remarks>
 public sealed record LrcMetadata
 {
     /// <summary>Singleton empty metadata.</summary>

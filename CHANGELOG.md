@@ -6,6 +6,8 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-10-13
+
 ### Removed (breaking)
 
 - `LrcParseOptions.ReadBufferSize` and `LrcWriteOptions.InitialBufferSize`. Inputs
@@ -97,6 +99,8 @@ Initial public release. Modern, AOT-compatible LRC (lyrics) parser/writer for
 Walaoke voice markers), tolerant-by-default with a stable diagnostic catalogue,
 sync + async overloads for every input shape, and zero-allocation writer paths.
 
+[Unreleased]: https://github.com/Anthonyy232/ModernLrcParser/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.0
 [1.2.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.1.0

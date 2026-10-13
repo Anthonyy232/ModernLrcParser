@@ -11,7 +11,7 @@ Modern, performance-first LRC (lyrics) parser and writer for .NET 10. AOT-compat
 - **Tolerant by default** with rich diagnostics; opt-in `LrcStrictness.Strict` for fail-fast behaviour.
 - **Span-first hand-rolled scanner** — no regex, no backtracking, zero per-token transient allocations.
 - **Every input shape** — `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, `ReadOnlySpan<byte>`, `byte[]`, `Stream`, file paths; sync and async.
-- **Zero-allocation writer** via `IBufferWriter<char>` and UTF-8 byte sinks; the `Write → string`, `TextWriter`, `TryWrite`, and `Stream` sinks pre-size their staging buffer to the document's estimated size so large renders don't accumulate copy-on-grow waste; atomic file write via temp + rename.
+- **Zero-allocation writer** via `IBufferWriter<char>`; byte sinks encode with any `Encoding`; atomic file write via temp + rename.
 - **Encoding pipeline** — BOM detection (UTF-8, UTF-16 LE/BE) → caller override → UTF-8 validation → caller-supplied fallback.
 - **Diagnostics catalogue** — every recoverable concern surfaces as a stable diagnostic code (`LRC0001`–`LRC0099`) with line/column location.
 
@@ -70,7 +70,7 @@ Byte/stream input uses this priority:
 1. BOM detection (UTF-8 `EF BB BF`, UTF-16 LE `FF FE`, UTF-16 BE `FE FF`).
 2. Caller-supplied `LrcParseOptions.Encoding` if set.
 3. UTF-8 validation (rejects malformed sequences).
-4. `LrcParseOptions.FallbackEncoding` (default `Encoding.UTF8`); emits `LRC0010` at Error severity if it kicks in. Set `FallbackEncoding = null` to fail loudly instead.
+4. `LrcParseOptions.FallbackEncoding` (default `Encoding.Latin1`, which decodes every byte losslessly); emits `LRC0010` at Error severity if it kicks in. Set `FallbackEncoding = null` to fail loudly instead.
 
 For non-Unicode encodings without a BOM (Shift-JIS, GBK, Big5), provide the encoding explicitly — statistical detection is intentionally out of scope.
 
@@ -155,7 +155,7 @@ ModernLrc edges Opportunity.LrcParser on small inputs and trails by 19–27% on 
 | Trim-safe                               |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
 | Nullable reference types                |    ✓     |     ✗       |     ✓       |    ✗    |     ✓       |
 | Target framework                        |  net10.0 | netstandard1.0 | netstandard2.1 | portable PCL | netstandard2.0 |
-| Last release                            |  2026-04 |  2018-05    |  2025-06    | 2015-06 | 2023-11 (archived) |
+| Last release                            |  2026-05 |  2018-05    |  2025-06    | 2015-06 | 2023-11 (archived) |
 
 ¹ SharpLyrics has internal word-time extraction, but the public API surfaces only single-timestamp lines from a file path — no string input.
 ² Opportunity.LrcParser exposes `LineWithSpeaker` for `Speaker: text` patterns, not the Walaoke `M:`/`F:`/`D:` voice protocol with state propagation.

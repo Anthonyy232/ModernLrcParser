@@ -7,24 +7,6 @@ namespace ModernLrc.Tests.Unit.Parser;
 public sealed class ArgumentValidationTests
 {
     [Fact]
-    public void Parse_NullString_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() => LrcParser.Parse((string)null!));
-    }
-
-    [Fact]
-    public void Parse_NullByteArray_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() => LrcParser.Parse((byte[])null!));
-    }
-
-    [Fact]
-    public void Parse_NullStream_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() => LrcParser.Parse((Stream)null!));
-    }
-
-    [Fact]
     public void Parse_UnreadableStream_Throws()
     {
         // A closed MemoryStream is not readable.

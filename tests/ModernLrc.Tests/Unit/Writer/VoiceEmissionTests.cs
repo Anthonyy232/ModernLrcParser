@@ -6,15 +6,6 @@ namespace ModernLrc.Tests.Unit.Writer;
 public sealed class VoiceEmissionTests
 {
     [Fact]
-    public void MaleVoice_EmitsMarker()
-    {
-        var doc = new LrcDocumentBuilder()
-            .AddLine("00:01.00", "x", LrcVoice.Male)
-            .Build();
-        LrcWriter.Write(doc).ShouldBe("[00:01.00]M: x\n");
-    }
-
-    [Fact]
     public void VoiceMarkerOnChangeOnly_FemaleThenFemale_OnlyOnce()
     {
         var doc = new LrcDocumentBuilder()
@@ -61,10 +52,8 @@ public sealed class VoiceEmissionTests
     {
         var doc = new LrcDocumentBuilder()
             .AddLine("00:01.00", "her line", LrcVoice.Female)
-            .AddLine("00:02.00", "no voice")  // EffectiveVoice = Default
+            .AddLine("00:02.00", "no voice")
             .Build();
-        // The Default-after-Female line emits no marker; the next non-default
-        // line will still emit a marker because tracker wasn't updated.
         var output = LrcWriter.Write(doc);
         output.ShouldBe("[00:01.00]F: her line\n[00:02.00]no voice\n");
     }

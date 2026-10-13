@@ -36,9 +36,13 @@ public static partial class LrcParser
     public static LrcParseResult Parse(ReadOnlySpan<char> input, LrcParseOptions? options = null)
     {
         options ??= LrcParseOptions.Default;
-        var emitter = new Internal.LrcDiagnosticEmitter(options);
-        var scanner = new Internal.LrcScanner(input, options, emitter);
-        var result = scanner.Run();
+        return Scan(input, options, new Internal.LrcDiagnosticEmitter(options));
+    }
+
+    /// <summary>Run the scanner and apply the strict-mode throw. Shared by the char and byte entry points.</summary>
+    private static LrcParseResult Scan(ReadOnlySpan<char> input, LrcParseOptions options, Internal.LrcDiagnosticEmitter emitter)
+    {
+        var result = new Internal.LrcScanner(input, options, emitter).Run();
         if (emitter.IsStrict && emitter.FirstError is not null)
         {
             throw new LrcParseException(
@@ -82,9 +86,6 @@ public static partial class LrcParser
         return Parse(reader.ReadToEnd().AsSpan(), options);
     }
 
-    // Parse(ReadOnlySpan<byte>, ...), Parse(byte[]), Parse(Stream), ParseFile
-    // are in LrcParser.ByteInput.cs. ParseAsync / ParseFileAsync are in LrcParser.Async.cs.
-
     /// <summary>BCL <c>TryParse</c> convention. Returns <c>false</c> if any
     /// Error-severity diagnostic was emitted; diagnostics are otherwise discarded.</summary>
     /// <param name="input">Source text.</param>
@@ -100,10 +101,7 @@ public static partial class LrcParser
     public static bool TryParse([StringSyntax("Lrc")] string input, [NotNullWhen(true)] out LrcDocument? document)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var result = Parse(input.AsSpan());
-        if (result.HasErrors) { document = null; return false; }
-        document = result.Document;
-        return true;
+        return TryParse(input.AsSpan(), out document, out _);
     }
 
     /// <summary>BCL convention with span input.</summary>
@@ -111,12 +109,7 @@ public static partial class LrcParser
     /// <param name="document">Parsed document on success; null on failure.</param>
     /// <returns><c>true</c> when parsing produced a usable document with no Error diagnostics.</returns>
     public static bool TryParse(ReadOnlySpan<char> input, [NotNullWhen(true)] out LrcDocument? document)
-    {
-        var result = Parse(input);
-        if (result.HasErrors) { document = null; return false; }
-        document = result.Document;
-        return true;
-    }
+        => TryParse(input, out document, out _);
 
     /// <summary>BCL convention with span input plus diagnostic capture.</summary>
     /// <param name="input">Source span.</param>

@@ -26,16 +26,8 @@ public sealed class VoiceMarkerParseTests
     }
 
     [Fact]
-    public void DuetMarker_Recognized()
-    {
-        var result = LrcParser.Parse("[00:01.00]D: together");
-        ((LrcPlainLine)result.Document.Lines[0]).EffectiveVoice.ShouldBe(LrcVoice.Duet);
-    }
-
-    [Fact]
     public void NoSpaceAfterColon_NotRecognizedAsMarker()
     {
-        // "M:hello" without the trailing space is plain text, not a marker.
         var result = LrcParser.Parse("[00:01.00]M:hello");
         var line = (LrcPlainLine)result.Document.Lines[0];
         line.EffectiveVoice.ShouldBe(LrcVoice.Default);

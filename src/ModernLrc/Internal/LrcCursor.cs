@@ -2,22 +2,18 @@ using System.Runtime.CompilerServices;
 
 namespace ModernLrc.Internal;
 
-/// <summary>Forward-only cursor over a <see cref="ReadOnlySpan{T}"/> of chars.
-/// Tracks 1-based line/column for diagnostic emission. ref-struct so it lives on the stack.</summary>
+/// <summary>Forward-only cursor over a span of chars. Tracks 1-based line/column for diagnostics.</summary>
 internal ref struct LrcCursor
 {
     private readonly ReadOnlySpan<char> _source;
 
-    /// <summary>Current absolute position into the source.</summary>
     public int Position;
 
-    /// <summary>1-based line number.</summary>
     public int Line;
 
-    /// <summary>Position of the start of the current line (for column = Position - LineStart + 1).</summary>
+    /// <summary>Position of the first char of the current line; <see cref="Column"/> is relative to it.</summary>
     public int LineStart;
 
-    /// <summary>Initialises the cursor at position 0, line 1.</summary>
     public LrcCursor(ReadOnlySpan<char> source)
     {
         _source = source;
@@ -26,24 +22,21 @@ internal ref struct LrcCursor
         LineStart = 0;
     }
 
-    /// <summary>True if the cursor has consumed every character.</summary>
     public readonly bool IsAtEnd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Position >= _source.Length;
     }
 
-    /// <summary>Source length (constant).</summary>
     public readonly int Length => _source.Length;
 
-    /// <summary>1-based column of the cursor.</summary>
     public readonly int Column => Position - LineStart + 1;
 
-    /// <summary>Peek the current character without advancing. Returns <c>'\0'</c> at end.</summary>
+    /// <summary>Returns <c>'\0'</c> at end.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly char Peek() => Position < _source.Length ? _source[Position] : '\0';
 
-    /// <summary>Peek <paramref name="offset"/> ahead. Returns <c>'\0'</c> when out of range.</summary>
+    /// <summary>Returns <c>'\0'</c> when out of range.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly char PeekAt(int offset)
     {
@@ -51,19 +44,6 @@ internal ref struct LrcCursor
         return target >= 0 && target < _source.Length ? _source[target] : '\0';
     }
 
-    /// <summary>If the current character matches <paramref name="c"/>, consume it and return true.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Match(char c)
-    {
-        if (Position < _source.Length && _source[Position] == c)
-        {
-            Advance();
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>Advance one character (handles line tracking).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance()
     {
@@ -78,36 +58,19 @@ internal ref struct LrcCursor
         }
     }
 
-    /// <summary>Read-only span over everything from the current position to end of source.</summary>
     public readonly ReadOnlySpan<char> RemainingSpan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _source[Position..];
     }
 
-    /// <summary>Slice <paramref name="length"/> chars starting at the current position (does not advance).</summary>
+    /// <summary>Slice <paramref name="length"/> chars from the current position without advancing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ReadOnlySpan<char> Slice(int length)
         => _source.Slice(Position, length);
 
-    /// <summary>Slice from <paramref name="start"/> (absolute) to current position.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<char> SliceFrom(int start)
-        => _source[start..Position];
-
-    /// <summary>Find the next occurrence of <paramref name="terminator"/> from the current position;
-    /// returns its absolute index or <c>-1</c>.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly int IndexOf(char terminator)
-    {
-        int i = _source[Position..].IndexOf(terminator);
-        return i < 0 ? -1 : Position + i;
-    }
-
-    /// <summary>Find the next occurrence of <paramref name="terminator"/> within the current line.
-    /// Returns its absolute index, or <c>-1</c> if a line terminator (LF or CR) is encountered first
-    /// or the search reaches end of source. Used to bound bracket scanning so a stray <c>]</c> on a
-    /// later line cannot be mis-attributed to a tag opened on an earlier line.</summary>
+    /// <summary>Absolute index of the next <paramref name="terminator"/> on the current line,
+    /// or <c>-1</c> if a line ending (LF or CR) or the end of input comes first.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int IndexOfWithinLine(char terminator)
     {
@@ -117,8 +80,7 @@ internal ref struct LrcCursor
         return slice[idx] == terminator ? Position + idx : -1;
     }
 
-    /// <summary>Find the next line-terminator char (\n or \r) from the current position;
-    /// returns its absolute index, or <see cref="Length"/> if none.</summary>
+    /// <summary>Absolute index of the next LF/CR, or <see cref="Length"/> if none.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int IndexOfLineEnd()
     {
@@ -126,14 +88,8 @@ internal ref struct LrcCursor
         return i < 0 ? _source.Length : Position + i;
     }
 
-    /// <summary>Skip to (but not past) the next LF/CR. Used to advance past a malformed line.</summary>
-    public void SkipToLineEnd()
-    {
-        // SIMD-friendly scan. Line/column tracking can be skipped because by definition
-        // we stop *before* the line terminator — no '\n' is consumed here.
-        int i = _source[Position..].IndexOfAny('\n', '\r');
-        Position = i < 0 ? _source.Length : Position + i;
-    }
+    /// <summary>Skip to (but not past) the next LF/CR. No '\n' is consumed, so line tracking is unaffected.</summary>
+    public void SkipToLineEnd() => Position = IndexOfLineEnd();
 
     /// <summary>Consume the line terminator if present (LF, CR, or CRLF).</summary>
     public void ConsumeLineTerminator()

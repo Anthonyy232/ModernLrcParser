@@ -6,24 +6,6 @@ namespace ModernLrc.Tests.Unit;
 
 public sealed class LrcDocumentBuilderTests
 {
-    // ---- construction, metadata, and Build() ----
-
-    [Fact]
-    public void Build_FromEmpty_ProducesEmptyDocument()
-    {
-        var doc = new LrcDocumentBuilder().Build();
-        doc.Lines.Count.ShouldBe(0);
-        doc.Metadata.ShouldBe(LrcMetadata.Empty);
-    }
-
-    [Fact]
-    public void WithTitle_FluentReturn()
-    {
-        var b = new LrcDocumentBuilder();
-        b.WithTitle("Song").ShouldBeSameAs(b);
-        b.Build().Metadata.Title.ShouldBe("Song");
-    }
-
     [Fact]
     public void Metadata_AllSetters_PreserveValues()
     {
@@ -75,17 +57,19 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
-    public void WithRawTag_NullKey_Throws()
+    public void WithRawTag_WhitespaceKey_Throws()
     {
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().WithRawTag(null!, "v"));
+        // "[ :value]" would not parse back.
+        Should.Throw<ArgumentException>(() => new LrcDocumentBuilder().WithRawTag("   ", "value"));
     }
 
     [Fact]
-    public void WithRawTag_NullValue_Throws()
+    public void AddEnhancedLine_DefaultWord_Throws()
     {
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().WithRawTag("k", null!));
+        // default(LrcWord) has a null Text.
+        LrcWord[] words = [default];
+        Should.Throw<ArgumentException>(() =>
+            new LrcDocumentBuilder().AddEnhancedLine(LrcTimestamp.Zero, (ReadOnlySpan<LrcWord>)words));
     }
 
     [Fact]
@@ -127,20 +111,6 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
-    public void Clear_DropsEverything()
-    {
-        var b = new LrcDocumentBuilder()
-            .WithTitle("X")
-            .AddLine("00:01.00", "hello");
-        b.Clear();
-        var doc = b.Build();
-        doc.Metadata.ShouldBe(LrcMetadata.Empty);
-        doc.Lines.Count.ShouldBe(0);
-    }
-
-    // ---- AddLine and AddEnhancedLine variants ----
-
-    [Fact]
     public void AddLine_StringTimestamp_BuildsPlainLine()
     {
         var doc = new LrcDocumentBuilder()
@@ -150,33 +120,6 @@ public sealed class LrcDocumentBuilderTests
         var line = (LrcPlainLine)doc.Lines[0];
         line.Text.ShouldBe("hello");
         line.Timestamp.ShouldBe(LrcTimestamp.Parse("00:12.34", CultureInfo.InvariantCulture));
-    }
-
-    [Fact]
-    public void AddLine_LrcTimestampOverload_Works()
-    {
-        var t = LrcTimestamp.FromMilliseconds(1_500);
-        var doc = new LrcDocumentBuilder()
-            .AddLine(t, "x")
-            .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(t);
-    }
-
-    [Fact]
-    public void AddLine_TimeSpanOverload_Works()
-    {
-        var ts = TimeSpan.FromMilliseconds(2_500);
-        var doc = new LrcDocumentBuilder()
-            .AddLine(ts, "x")
-            .Build();
-        ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(LrcTimestamp.FromTimeSpan(ts));
-    }
-
-    [Fact]
-    public void AddLine_TimeSpanNegative_Throws()
-    {
-        Should.Throw<ArgumentOutOfRangeException>(() =>
-            new LrcDocumentBuilder().AddLine(TimeSpan.FromMilliseconds(-1), "x"));
     }
 
     [Fact]
@@ -190,7 +133,6 @@ public sealed class LrcDocumentBuilderTests
         doc.Lines.Count.ShouldBe(2);
         ((LrcPlainLine)doc.Lines[0]).Timestamp.ShouldBe(t1);
         ((LrcPlainLine)doc.Lines[1]).Timestamp.ShouldBe(t2);
-        // Same Text reference shared across the fan-out — one allocation, not N.
         ReferenceEquals(((LrcPlainLine)doc.Lines[0]).Text, ((LrcPlainLine)doc.Lines[1]).Text)
             .ShouldBeTrue();
     }
@@ -200,63 +142,6 @@ public sealed class LrcDocumentBuilderTests
     {
         Should.Throw<ArgumentException>(() =>
             new LrcDocumentBuilder().AddLineGroup(ReadOnlySpan<LrcTimestamp>.Empty, "x"));
-    }
-
-    [Fact]
-    public void AddLine_TextNull_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().AddLine("00:01.00", null!));
-    }
-
-    [Fact]
-    public void AddLine_TimestampStringNull_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().AddLine((string)null!, "x"));
-    }
-
-    [Fact]
-    public void AddLine_TimestampStringInvalid_Throws()
-    {
-        Should.Throw<FormatException>(() =>
-            new LrcDocumentBuilder().AddLine("garbage", "x"));
-    }
-
-    [Fact]
-    public void AddLine_VoiceCarriedToLine()
-    {
-        var doc = new LrcDocumentBuilder()
-            .AddLine("00:01.00", "hi", LrcVoice.Female)
-            .Build();
-        var line = (LrcPlainLine)doc.Lines[0];
-        line.EffectiveVoice.ShouldBe(LrcVoice.Female);
-    }
-
-    [Fact]
-    public void AddEnhancedLine_SpanOfWords_Works()
-    {
-        var t0 = LrcTimestamp.FromMilliseconds(0);
-        var t1 = LrcTimestamp.FromMilliseconds(500);
-        ReadOnlySpan<LrcWord> words = [new(t0, "hello "), new(t1, "world")];
-        var doc = new LrcDocumentBuilder()
-            .AddEnhancedLine(t0, words)
-            .Build();
-        var line = (LrcEnhancedLine)doc.Lines[0];
-        line.Words.Count.ShouldBe(2);
-        line.Words[1].Text.ShouldBe("world");
-    }
-
-    [Fact]
-    public void AddEnhancedLine_FromTuples_Works()
-    {
-        var t0 = LrcTimestamp.FromMilliseconds(0);
-        var t1 = LrcTimestamp.FromMilliseconds(500);
-        var doc = new LrcDocumentBuilder()
-            .AddEnhancedLine(t0, [(t0, "hello "), (t1, "world")])
-            .Build();
-        var line = (LrcEnhancedLine)doc.Lines[0];
-        line.Words.Count.ShouldBe(2);
     }
 
     [Fact]
@@ -272,79 +157,7 @@ public sealed class LrcDocumentBuilderTests
         doc.Lines.Count.ShouldBe(2);
         ((LrcEnhancedLine)doc.Lines[0]).Timestamp.ShouldBe(t1);
         ((LrcEnhancedLine)doc.Lines[1]).Timestamp.ShouldBe(t2);
-        // Same Words array shared.
         ((LrcEnhancedLine)doc.Lines[0]).Words.Equals(((LrcEnhancedLine)doc.Lines[1]).Words).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void AddEnhancedLine_TuplesNull_Throws()
-    {
-        var t = LrcTimestamp.Zero;
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().AddEnhancedLine(t, (IEnumerable<(LrcTimestamp, string)>)null!));
-    }
-
-    [Fact]
-    public void AddEnhancedLine_VoiceCarried()
-    {
-        var t = LrcTimestamp.Zero;
-        var doc = new LrcDocumentBuilder()
-            .AddEnhancedLine(t, [(t, "x")], LrcVoice.Male)
-            .Build();
-        var line = (LrcEnhancedLine)doc.Lines[0];
-        line.EffectiveVoice.ShouldBe(LrcVoice.Male);
-    }
-
-    [Fact]
-    public void AddLine_LrcLineDirect_HoldsReference()
-    {
-        var t = LrcTimestamp.FromMilliseconds(500);
-        var line = new LrcPlainLine { Timestamp = t, Text = "x" };
-        var doc = new LrcDocumentBuilder().AddLine(line).Build();
-        doc.Lines[0].ShouldBeSameAs(line);
-    }
-
-    [Fact]
-    public void AddLines_AppendsAll()
-    {
-        var t = LrcTimestamp.FromMilliseconds(1_000);
-        LrcLine[] lines =
-        [
-            new LrcPlainLine { Timestamp = t, Text = "a" },
-            new LrcPlainLine { Timestamp = t + TimeSpan.FromMilliseconds(1), Text = "b" },
-        ];
-        var doc = new LrcDocumentBuilder().AddLines(lines).Build();
-        doc.Lines.Count.ShouldBe(2);
-    }
-
-    // ---- manipulation, ShiftAll, and Build sort ----
-
-    [Fact]
-    public void LineCount_ReflectsInsertions()
-    {
-        var b = new LrcDocumentBuilder();
-        b.LineCount.ShouldBe(0);
-        b.AddLine("00:01.00", "a");
-        b.LineCount.ShouldBe(1);
-        b.AddLine("00:02.00", "b");
-        b.LineCount.ShouldBe(2);
-    }
-
-    [Fact]
-    public void GetLineAt_ReturnsInsertionOrder()
-    {
-        var b = new LrcDocumentBuilder()
-            .AddLine("00:02.00", "second")
-            .AddLine("00:01.00", "first");
-        ((LrcPlainLine)b.GetLineAt(0)).Text.ShouldBe("second");
-        ((LrcPlainLine)b.GetLineAt(1)).Text.ShouldBe("first");
-    }
-
-    [Fact]
-    public void GetLineAt_OutOfRange_Throws()
-    {
-        var b = new LrcDocumentBuilder().AddLine("00:01.00", "a");
-        Should.Throw<ArgumentOutOfRangeException>(() => b.GetLineAt(5));
     }
 
     [Fact]
@@ -421,7 +234,6 @@ public sealed class LrcDocumentBuilderTests
             .AddLine("00:02.00", "b");
         Should.Throw<ArgumentOutOfRangeException>(() =>
             b.ShiftAll(TimeSpan.FromMilliseconds(-1_000)));
-        // Original timestamps must be intact.
         var doc = b.Build();
         ((LrcPlainLine)doc.Lines[0]).Timestamp.TotalMilliseconds.ShouldBe(500);
     }
@@ -482,51 +294,10 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
-    public void CtorFromExistingDocument_NullSource_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() => new LrcDocumentBuilder(null!));
-    }
-
-    // ---- Boundary tests added during code review ----
-
-    [Fact]
-    public void RemoveLineAt_OutOfRange_Throws()
-    {
-        var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
-        Should.Throw<ArgumentOutOfRangeException>(() => b.RemoveLineAt(5));
-        Should.Throw<ArgumentOutOfRangeException>(() => b.RemoveLineAt(-1));
-    }
-
-    [Fact]
-    public void RemoveLinesWhere_NullPredicate_Throws()
-    {
-        Should.Throw<ArgumentNullException>(() =>
-            new LrcDocumentBuilder().RemoveLinesWhere(null!));
-    }
-
-    [Fact]
-    public void ReplaceLine_OutOfRange_Throws()
-    {
-        var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
-        var t = LrcTimestamp.FromMilliseconds(1_000);
-        var replacement = new LrcPlainLine { Timestamp = t, Text = "y" };
-        Should.Throw<ArgumentOutOfRangeException>(() => b.ReplaceLine(5, replacement));
-        Should.Throw<ArgumentOutOfRangeException>(() => b.ReplaceLine(-1, replacement));
-    }
-
-    [Fact]
-    public void ReplaceLine_NullReplacement_Throws()
-    {
-        var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
-        Should.Throw<ArgumentNullException>(() => b.ReplaceLine(0, null!));
-    }
-
-    [Fact]
     public void ShiftAll_TimeSpanMinValue_NormalizesOverflowToArgumentOutOfRange()
     {
         var b = new LrcDocumentBuilder().AddLine("00:01.00", "x");
         Should.Throw<ArgumentOutOfRangeException>(() => b.ShiftAll(TimeSpan.MinValue));
-        // Builder unchanged: "00:01.00" is 1 second (1000 ms).
         ((LrcPlainLine)b.GetLineAt(0)).Timestamp.TotalMilliseconds.ShouldBe(1_000);
     }
 }

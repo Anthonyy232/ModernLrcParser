@@ -15,13 +15,11 @@ public sealed class BracketBoundedScanTests
     {
         var result = LrcParser.Parse("[ti:Some\nTitle]\n[00:01.00]hello");
 
-        // The '[' on line 1 has no matching ']' before the line ends.
         result.Diagnostics.ShouldContain(d =>
             d.Code == LrcDiagnosticIds.UnclosedTag
             && d.Severity == LrcDiagnosticSeverity.Error
             && d.Line == 1);
 
-        // Title was NOT silently absorbed across the newline.
         result.Document.Metadata.Title.ShouldBeNull();
     }
 
@@ -42,9 +40,6 @@ public sealed class BracketBoundedScanTests
     [Fact]
     public void DiagnosticLineNumbers_StayAccurate_AfterUnclosedTagRecovery()
     {
-        // Earlier behaviour silently consumed the newline inside the tag, leaving the line
-        // counter stale and reporting subsequent diagnostics with off-by-N line numbers.
-        // After the bounded-scan fix, line tracking remains correct.
         var result = LrcParser.Parse(
             "[ti:Some\nTitle]\n" +    // line 1: unclosed [, then on line 2 free text 'Title]'
             "[00:01.00]ok\n" +        // line 3: valid
@@ -58,10 +53,7 @@ public sealed class BracketBoundedScanTests
     [Fact]
     public void RoundTrip_TagWithEmbeddedNewlineInBuilder_DoesNotSurviveReparse()
     {
-        // Builder accepts arbitrary metadata; writer emits it verbatim. After the bounded-scan
-        // fix, a value containing a newline can no longer round-trip — the parser refuses to
-        // absorb a newline inside [k:v]. This makes the failure visible (LRC0001 + null typed
-        // value) rather than silently corrupting line tracking.
+        // Known limitation: the writer emits the newline verbatim, and the parser rejects it loudly.
         var doc = new LrcDocumentBuilder().WithTitle("Multi\nLine").AddLine("00:01.00", "x").Build();
         var lrc = LrcWriter.Write(doc);
 

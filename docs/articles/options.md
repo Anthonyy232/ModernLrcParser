@@ -8,10 +8,9 @@ Both option records are immutable; use `with` expressions to derive variants.
 |---|---|---|
 | `Strictness` | `Tolerant` | `Strict` throws [`LrcParseException`](xref:ModernLrc.LrcParseException) on the first Error-severity diagnostic. |
 | `Encoding` | `null` (auto-detect) | When non-null, decodes unmarked input with this encoding. A recognised BOM still wins (matches `StreamReader`); strip the BOM yourself to force a different decoding. See [encoding pipeline](encoding-pipeline.md). |
-| `FallbackEncoding` | `Encoding.UTF8` | Used when BOM is absent and bytes are not valid UTF-8. Set to `null` to throw instead. |
+| `FallbackEncoding` | `Encoding.Latin1` | Used when BOM is absent and bytes are not valid UTF-8 (lossless: every byte maps to a char). Set to `null` to throw instead. |
 | `MaxDiagnostics` | 256 | Cap. `0` suppresses everything (including the `LRC0099` cap notice). Strict-mode bail still works. |
 | `ImplausibleTimestampThreshold` | 24 h | Above this, `LRC0070` is emitted. Set to `TimeSpan.Zero` to disable. |
-| `ReadBufferSize` | 4096 | Initial read buffer for stream/file inputs. Min 64. |
 
 ```csharp
 // Recipe: parse strictly, suppress all diagnostic noise.
@@ -27,7 +26,7 @@ var quietStrict = new LrcParseOptions
 | Property | Default | Notes |
 |---|---|---|
 | `LineEnding` | `Lf` | `Lf`, `Crlf`, `Cr`, or `System` (which falls back to `Lf` if `Environment.NewLine` is unusual). |
-| `Encoding` | UTF-8 (no BOM) | Used for `Stream`, `IBufferWriter<byte>`, and fixed `Span<byte>` paths. |
+| `Encoding` | UTF-8 | Used for `Stream`, `IBufferWriter<byte>`, and fixed `Span<byte>` paths. A BOM is written only when `EmitByteOrderMark` is `true`. |
 | `EmitByteOrderMark` | `false` | Sole BOM control. `true` prepends `Encoding.GetPreamble()`. |
 | `TrailingNewline` | `true` | Whether the rendered output ends with one line ending. |
 | `TimestampPrecision` | `Centiseconds` | `mm:ss.xx` vs `mm:ss.xxx` (Milliseconds). |
@@ -35,21 +34,29 @@ var quietStrict = new LrcParseOptions
 | `EmitVoiceMarkers` | `true` | When `false`, voice metadata is dropped on render. |
 | `VoiceMarkerOnChangeOnly` | `true` | When `false`, every non-default-voice line gets an explicit marker. |
 | `MetadataOrdering` | `Canonical` | Ordering of the metadata block — see below. |
-| `InitialBufferSize` | 4096 | Floor for the initial output buffer (chars or bytes per sink). Min 16. The string / TextWriter / TryWrite / Stream sinks may stage into a larger buffer when a document's estimated size exceeds this — eliminates copy-on-grow waste on large renders without forcing callers to tune. The `IBufferWriter<T>` sinks honor this verbatim. |
 
 ### `MetadataOrdering`
 
-- **`Canonical`** — typed accessors with no matching raw tag are emitted as
+- **`Canonical`** — typed values not already covered by raw tags are emitted as
   `ti, ar, al, au, lr, length, by, offset, re, ve`, then `RawTags` in original
   array order. For parsed documents this preserves duplicate/conflicting typed
   tags exactly.
-- **`Alphabetical`** — typed accessors with no matching raw tag are emitted A→Z
-  by C# property name (Album, Artist, Author, …), then all `RawTags` A→Z by key.
+- **`Alphabetical`** — typed values not already covered by raw tags are emitted A→Z
+  by C# property name (Album, Artist, Author, …), then `RawTags` A→Z by key.
 
-Both orderings preserve all `RawTags`. When you edit a typed accessor through
-`LrcDocumentBuilder`, the builder removes matching raw typed tags so the edit
-wins on write. Unchanged parsed metadata keeps duplicate or conflicting source
-tags instead of being collapsed to the last-wins value.
+The typed properties are authoritative. Raw tags of a known key (`ti`, `length`, …)
+are written verbatim only while re-parsing them would still give the typed value, so
+unchanged parsed metadata keeps duplicate or conflicting source tags (and unparseable
+ones such as `[length:abc]`). Once a typed property differs — whether edited through
+`LrcDocumentBuilder` or with `metadata with { Title = "New" }` — its raw tags are
+dropped and the typed value is written instead. Setting a typed property to `null`
+removes the tag from the output.
+
+```csharp
+var doc = LrcParser.Parse("[ti:Old]\n[xx:custom]\n[00:01.00]hi").Document;
+var edited = doc with { Metadata = doc.Metadata with { Title = "New" } };
+LrcWriter.Write(edited);   // "[ti:New]\n[xx:custom]\n\n[00:01.00]hi\n"
+```
 
 ### `LineEnding`
 

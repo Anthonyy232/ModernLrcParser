@@ -26,24 +26,8 @@ public sealed record LrcParseResult
     public required ImmutableArray<LrcDiagnostic> Diagnostics { get; init; }
 
     /// <summary>True if any diagnostic has <see cref="LrcDiagnosticSeverity.Error"/> severity.</summary>
-    public bool HasErrors
-    {
-        get
-        {
-            foreach (var d in Diagnostics)
-                if (d.Severity == LrcDiagnosticSeverity.Error) return true;
-            return false;
-        }
-    }
+    public bool HasErrors => Diagnostics.Any(static d => d.Severity == LrcDiagnosticSeverity.Error);
 
     /// <summary>True if any diagnostic has <see cref="LrcDiagnosticSeverity.Warning"/> severity.</summary>
-    public bool HasWarnings
-    {
-        get
-        {
-            foreach (var d in Diagnostics)
-                if (d.Severity == LrcDiagnosticSeverity.Warning) return true;
-            return false;
-        }
-    }
+    public bool HasWarnings => Diagnostics.Any(static d => d.Severity == LrcDiagnosticSeverity.Warning);
 }

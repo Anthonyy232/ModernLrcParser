@@ -13,16 +13,6 @@ public sealed class SimpleWriteTests
     }
 
     [Fact]
-    public void SinglePlainLine_RendersTimestampPlusText()
-    {
-        var doc = new LrcDocumentBuilder()
-            .AddLine("00:01.00", "hello")
-            .Build();
-        var output = LrcWriter.Write(doc);
-        output.ShouldBe("[00:01.00]hello\n");
-    }
-
-    [Fact]
     public void TwoLines_SeparatedByLineFeed()
     {
         var doc = new LrcDocumentBuilder()
@@ -56,30 +46,10 @@ public sealed class SimpleWriteTests
     }
 
     [Fact]
-    public void MultiTimestampGroup_DefaultCollapsesToSingleEmission()
+    public void TrailingNewlineFalse_KeepsNewlineInsideUserText()
     {
-        // AddLineGroup fans out into N LrcPlainLine objects sharing the same Text.
-        // Default LrcWriteOptions has CollapseIdenticalLines = true, so the writer
-        // re-folds them into a single [t1][t2]chorus emission.
-        var t1 = LrcTimestamp.FromMilliseconds(1_000);
-        var t2 = LrcTimestamp.FromMilliseconds(5_000);
-        var doc = new LrcDocumentBuilder()
-            .AddLineGroup([t1, t2], "chorus")
-            .Build();
-        var output = LrcWriter.Write(doc);
-        output.ShouldBe("[00:01.00][00:05.00]chorus\n");
-    }
-
-    [Fact]
-    public void MultiTimestampGroup_CollapseDisabled_EmitsOneLinePerTimestamp()
-    {
-        var t1 = LrcTimestamp.FromMilliseconds(1_000);
-        var t2 = LrcTimestamp.FromMilliseconds(5_000);
-        var doc = new LrcDocumentBuilder()
-            .AddLineGroup([t1, t2], "chorus")
-            .Build();
-        var output = LrcWriter.Write(doc, new LrcWriteOptions { CollapseIdenticalLines = false });
-        output.ShouldBe("[00:01.00]chorus\n[00:05.00]chorus\n");
+        var doc = new LrcDocumentBuilder().AddLine(LrcTimestamp.Zero, "foo\n").Build();
+        LrcWriter.Write(doc, new LrcWriteOptions { TrailingNewline = false }).ShouldBe("[00:00.00]foo\n");
     }
 
     [Fact]

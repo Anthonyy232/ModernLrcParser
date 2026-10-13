@@ -52,18 +52,6 @@ public sealed class BufferBoundaryTests
     }
 
     [Fact]
-    public void Write_ToUtf8BufferWriter_Crlf_NoTrailingNewline_OutputHasNoStrayCr()
-    {
-        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();
-        var options = new LrcWriteOptions { LineEnding = LrcLineEnding.Crlf, TrailingNewline = false };
-        var bw = new MinSpanBufferWriter<byte>();
-
-        LrcWriter.Write(doc, bw, options);
-
-        Encoding.UTF8.GetString(bw.WrittenSpan).ShouldBe("[00:01.00]x");
-    }
-
-    [Fact]
     public void Write_ToCharBufferWriter_Crlf_WithTrailingNewline_OutputEndsWithCrlf()
     {
         var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build();

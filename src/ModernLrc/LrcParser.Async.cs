@@ -22,8 +22,8 @@ public static partial class LrcParser
         return Parse(text.AsSpan(), options);
     }
 
-    /// <summary>Async parse from a <see cref="Stream"/>. Reads all bytes into memory then
-    /// applies the encoding pipeline (BOM → caller override → UTF-8 → fallback).</summary>
+    /// <summary>Async parse from a <see cref="Stream"/>. Reads the remaining bytes into memory
+    /// then applies the encoding pipeline (BOM → caller override → UTF-8 → fallback).</summary>
     /// <param name="stream">Source stream; must be readable.</param>
     /// <param name="options">Parser options.</param>
     /// <param name="cancellationToken">Honored at start and during stream copy.</param>
@@ -43,17 +43,10 @@ public static partial class LrcParser
         LrcParseOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+        ThrowIfNotReadable(stream);
         cancellationToken.ThrowIfCancellationRequested();
-
-        options ??= LrcParseOptions.Default;
-
-        if (stream is MemoryStream ms && ms.TryGetBuffer(out var seg))
-            return ParseMemoryStreamBuffer(ms, seg, options);
-
         using var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer, options.ReadBufferSize, cancellationToken).ConfigureAwait(false);
+        await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
         return Parse(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), options);
     }
 
@@ -62,7 +55,7 @@ public static partial class LrcParser
     /// propagate raw.</summary>
     /// <param name="path">File path. Must be non-empty.</param>
     /// <param name="options">Parser options.</param>
-    /// <param name="cancellationToken">Honored before opening and during stream copy.</param>
+    /// <param name="cancellationToken">Honored before opening and during the read.</param>
     /// <returns>The parsed result.</returns>
     /// <exception cref="ArgumentException"><paramref name="path"/> is null, empty, or whitespace.</exception>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
@@ -74,21 +67,16 @@ public static partial class LrcParser
         LrcParseOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentException("Path is required.", nameof(path));
+        ThrowIfInvalidPath(path);
         cancellationToken.ThrowIfCancellationRequested();
-        options ??= LrcParseOptions.Default;
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
         try
         {
-            var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-                options.ReadBufferSize, FileOptions.Asynchronous);
-            await using (fs.ConfigureAwait(false))
-                return await ParseAsync(fs, options, cancellationToken).ConfigureAwait(false);
+            return Parse(bytes, options);
         }
-        catch (LrcParseException ex) when (ex.FilePath is null)
+        catch (LrcParseException ex)
         {
-            // Re-wrap with file path filled in (catches both encoding and content failures).
-            throw new LrcParseException(ex.Message, ex.PartialResult, ex.FirstError, path);
+            throw WithPath(ex, path);
         }
     }
 }

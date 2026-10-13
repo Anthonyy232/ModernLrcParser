@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace ModernLrc.Model;
 
 /// <summary>
@@ -60,8 +58,7 @@ public readonly partial struct LrcTimestamp :
     public static LrcTimestamp FromMilliseconds(long ms)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(ms);
-        if (ms > long.MaxValue / TimeSpan.TicksPerMillisecond)
-            throw new ArgumentOutOfRangeException(nameof(ms), "Milliseconds value is too large.");
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(ms, long.MaxValue / TimeSpan.TicksPerMillisecond);
         return new LrcTimestamp(ms * TimeSpan.TicksPerMillisecond);
     }
 
@@ -73,13 +70,9 @@ public readonly partial struct LrcTimestamp :
     }
 
     /// <summary>Implicit lift to <see cref="TimeSpan"/>.</summary>
-    [SuppressMessage("Usage", "CA2225:Operator overloads have named alternates",
-        Justification = "Implicit lift to TimeSpan is the canonical interop; ToTimeSpan() serves as the named alternate.")]
     public static implicit operator TimeSpan(LrcTimestamp t) => t.ToTimeSpan();
 
     /// <summary>Add a <see cref="TimeSpan"/>. Throws <see cref="OverflowException"/> if the result would be negative.</summary>
-    [SuppressMessage("Usage", "CA2225:Operator overloads have named alternates",
-        Justification = "Arithmetic on LrcTimestamp is intentionally operator-only; named helpers would pollute the API surface for a value type used in hot paths.")]
     public static LrcTimestamp operator +(LrcTimestamp left, TimeSpan right)
     {
         long sum = checked(left._ticks + right.Ticks);
@@ -89,8 +82,6 @@ public readonly partial struct LrcTimestamp :
     }
 
     /// <summary>Subtract a <see cref="TimeSpan"/>. Throws <see cref="OverflowException"/> if the result would be negative.</summary>
-    [SuppressMessage("Usage", "CA2225:Operator overloads have named alternates",
-        Justification = "Arithmetic on LrcTimestamp is intentionally operator-only; named helpers would pollute the API surface for a value type used in hot paths.")]
     public static LrcTimestamp operator -(LrcTimestamp left, TimeSpan right)
     {
         long sum = checked(left._ticks - right.Ticks);
@@ -100,8 +91,6 @@ public readonly partial struct LrcTimestamp :
     }
 
     /// <summary>Subtract two timestamps producing a (signed) <see cref="TimeSpan"/>.</summary>
-    [SuppressMessage("Usage", "CA2225:Operator overloads have named alternates",
-        Justification = "Arithmetic on LrcTimestamp is intentionally operator-only; named helpers would pollute the API surface for a value type used in hot paths.")]
     public static TimeSpan operator -(LrcTimestamp left, LrcTimestamp right)
         => new(left._ticks - right._ticks);
 

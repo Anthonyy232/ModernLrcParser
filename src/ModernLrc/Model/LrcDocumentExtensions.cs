@@ -94,32 +94,11 @@ public static class LrcDocumentExtensions
     public static string GetText(this LrcLine line)
     {
         ArgumentNullException.ThrowIfNull(line);
-#pragma warning disable CS8509 // intentional defence-in-depth arm: hierarchy is sealed today but guard against future subtypes
         return line switch
         {
             LrcPlainLine p => p.Text,
-            LrcEnhancedLine e => ConcatWords(e.Words),
+            LrcEnhancedLine e => string.Concat(e.Words.Select(static w => w.Text)),
             _ => throw new UnreachableException("LrcLine hierarchy is sealed."),
         };
-#pragma warning restore CS8509
-    }
-
-    private static string ConcatWords(EquatableArray<LrcWord> words)
-    {
-        if (words.Count == 0) return string.Empty;
-        if (words.Count == 1) return words[0].Text;
-
-        int totalLen = 0;
-        foreach (var w in words) totalLen += w.Text.Length;
-
-        return string.Create(totalLen, words, static (dest, src) =>
-        {
-            int pos = 0;
-            foreach (var w in src)
-            {
-                w.Text.AsSpan().CopyTo(dest[pos..]);
-                pos += w.Text.Length;
-            }
-        });
     }
 }

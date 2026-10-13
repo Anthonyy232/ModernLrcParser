@@ -1,10 +1,7 @@
 namespace ModernLrc.Model;
 
 /// <summary>Walaoke voice marker carried on lyric lines.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design", "CA1028:Enum storage should be Int32",
-    Justification = "byte is intentional — LrcVoice is widely embedded in records and arrays; saving 3 bytes per occurrence matters at scale.")]
-public enum LrcVoice : byte
+public enum LrcVoice
 {
     /// <summary>No explicit voice; the line uses propagated state or the document default.</summary>
     Default = 0,

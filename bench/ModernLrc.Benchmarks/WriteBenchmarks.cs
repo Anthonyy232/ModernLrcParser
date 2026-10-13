@@ -24,10 +24,10 @@ public class WriteBenchmarks
     public void Setup()
     {
         _doc = Sources.BuildDocument(LineCount, DocumentShape.Mixed);
-        _estimatedSize = LrcWriter.EstimateSize(_doc);
+        _estimatedSize = LrcWriter.Write(_doc).Length;
         // TryWrite buffers — sized generously so the success path is measured.
         _charBuffer = new char[_estimatedSize * 2];
-        _byteBuffer = new byte[LrcWriter.EstimateByteSize(_doc) + 64];
+        _byteBuffer = new byte[_estimatedSize * 4];
     }
 
     [Benchmark(Baseline = true), BenchmarkCategory("Char")]
@@ -70,7 +70,4 @@ public class WriteBenchmarks
 
     [Benchmark, BenchmarkCategory("Byte")]
     public bool TryWrite_Byte() => LrcWriter.TryWrite(_doc, _byteBuffer, out _);
-
-    [Benchmark, BenchmarkCategory("Estimate")]
-    public int EstimateSize() => LrcWriter.EstimateSize(_doc);
 }

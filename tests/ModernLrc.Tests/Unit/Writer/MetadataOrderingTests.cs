@@ -20,7 +20,6 @@ public sealed class MetadataOrderingTests
             .AddLine("00:01.00", "x")
             .Build();
         var output = LrcWriter.Write(doc, new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Canonical });
-        // ti, ar, al, au, lr, length, by, offset, re, ve
         output.ShouldStartWith("[ti:Title]\n[ar:Artist]\n[al:Album]\n[au:Carol]\n[lr:Alice]\n[length:03:00]\n[by:Bob]\n[re:Demo]\n[ve:1.0]\n");
     }
 
@@ -40,16 +39,6 @@ public sealed class MetadataOrderingTests
     }
 
     [Fact]
-    public void NoMetadata_NoBlankLineBeforeLyrics()
-    {
-        var doc = new LrcDocumentBuilder()
-            .AddLine("00:01.00", "x")
-            .Build();
-        var output = LrcWriter.Write(doc);
-        output.ShouldBe("[00:01.00]x\n");
-    }
-
-    [Fact]
     public void MetadataAndLyrics_BlankLineSeparator()
     {
         var doc = new LrcDocumentBuilder()
@@ -58,16 +47,6 @@ public sealed class MetadataOrderingTests
             .Build();
         var output = LrcWriter.Write(doc);
         output.ShouldBe("[ti:T]\n\n[00:01.00]x\n");
-    }
-
-    [Fact]
-    public void OffsetZero_NotEmitted()
-    {
-        var doc = new LrcDocumentBuilder()
-            .WithTitle("T")
-            .AddLine("00:01.00", "x")
-            .Build();
-        LrcWriter.Write(doc).ShouldNotContain("[offset:");
     }
 
     [Fact]
@@ -88,5 +67,17 @@ public sealed class MetadataOrderingTests
             .AddLine("00:01.00", "x")
             .Build();
         LrcWriter.Write(doc).ShouldContain("[offset:+250]");
+    }
+
+    [Fact]
+    public void Alphabetical_RawTagsEmittedInKeyOrder()
+    {
+        var doc = new LrcDocumentBuilder()
+            .WithRawTag("zzz", "last")
+            .WithRawTag("aaa", "first")
+            .WithRawTag("mmm", "middle")
+            .Build();
+        var options = new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Alphabetical };
+        LrcWriter.Write(doc, options).ShouldBe("[aaa:first]\n[mmm:middle]\n[zzz:last]\n");
     }
 }

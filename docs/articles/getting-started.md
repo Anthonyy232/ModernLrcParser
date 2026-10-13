@@ -86,15 +86,15 @@ times as you want; it doesn't reset the builder's state.
 // To a string
 string lrc = LrcWriter.Write(doc);
 
-// To a stream (UTF-8 by default; takes a fast path that avoids any intermediate string)
+// To a stream (UTF-8 by default)
 using var fs = File.Create("song.lrc");
 LrcWriter.Write(doc, fs);
 
 // Atomic file write (temp + rename)
 LrcWriter.WriteFile(doc, "song.lrc");
 
-// Zero-allocation: render straight into your own buffer writer
-var bw = new System.Buffers.ArrayBufferWriter<byte>();
+// Zero-allocation: render straight into your own char buffer writer
+var bw = new System.Buffers.ArrayBufferWriter<char>();
 LrcWriter.Write(doc, bw);
 ReadOnlySpan<byte> bytes = bw.WrittenSpan;
 ```

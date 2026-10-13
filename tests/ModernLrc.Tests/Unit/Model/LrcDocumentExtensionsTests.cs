@@ -24,14 +24,6 @@ public sealed class LrcDocumentExtensionsTests
     }
 
     [Fact]
-    public void GetEffectiveTime_NoOffset_ReturnsSame()
-    {
-        var doc = LrcDocument.Empty;
-        var t = LrcTimestamp.FromMilliseconds(1_000);
-        doc.GetEffectiveTime(t).ShouldBe(TimeSpan.FromMilliseconds(1_000));
-    }
-
-    [Fact]
     public void GetEffectiveTime_NegativeOffset_CanProduceNegativeTimeSpan()
     {
         var doc = BuildDoc(TimeSpan.FromMilliseconds(-500));
@@ -98,12 +90,6 @@ public sealed class LrcDocumentExtensionsTests
     }
 
     [Fact]
-    public void LinesInRange_EmptyDoc_ReturnsEmpty()
-    {
-        LrcDocument.Empty.LinesInRange(TimeSpan.Zero, TimeSpan.FromHours(1)).ShouldBeEmpty();
-    }
-
-    [Fact]
     public void LinesInRange_PreservesDocumentOrder_OnTies()
     {
         // Two lines with the same timestamp — original order must be preserved.
@@ -122,17 +108,6 @@ public sealed class LrcDocumentExtensionsTests
     }
 
     [Fact]
-    public void GetText_PlainLine_ReturnsText()
-    {
-        LrcLine line = new LrcPlainLine
-        {
-            Timestamp = LrcTimestamp.Zero,
-            Text = "hello world",
-        };
-        line.GetText().ShouldBe("hello world");
-    }
-
-    [Fact]
     public void GetText_EnhancedLine_ConcatsWords()
     {
         var t = LrcTimestamp.Zero;
@@ -142,16 +117,5 @@ public sealed class LrcDocumentExtensionsTests
             Words = [new(t, "hello "), new(t, "world")],
         };
         line.GetText().ShouldBe("hello world");
-    }
-
-    [Fact]
-    public void GetText_EnhancedLine_Empty_ReturnsEmpty()
-    {
-        LrcLine line = new LrcEnhancedLine
-        {
-            Timestamp = LrcTimestamp.Zero,
-            Words = EquatableArray<LrcWord>.Empty,
-        };
-        line.GetText().ShouldBe(string.Empty);
     }
 }

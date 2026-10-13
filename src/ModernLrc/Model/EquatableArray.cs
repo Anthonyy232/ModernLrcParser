@@ -15,10 +15,8 @@ public readonly struct EquatableArray<T> :
 {
     private readonly ImmutableArray<T> _items;
 
-    // CA1000: static members on generic types are intentional here — Empty
-    // follows the ImmutableArray<T>.Empty / ImmutableArray.Create pattern that is idiomatic in .NET.
-#pragma warning disable CA1000
     /// <summary>Empty array singleton.</summary>
+#pragma warning disable CA1000 // Mirrors ImmutableArray<T>.Empty.
     public static EquatableArray<T> Empty { get; } = new(ImmutableArray<T>.Empty);
 #pragma warning restore CA1000
 
@@ -26,23 +24,26 @@ public readonly struct EquatableArray<T> :
     public EquatableArray(ImmutableArray<T> items)
         => _items = items.IsDefault ? ImmutableArray<T>.Empty : items;
 
-    /// <inheritdoc />
-    public int Count => _items.IsDefault ? 0 : _items.Length;
+    /// <summary><c>default(EquatableArray&lt;T&gt;)</c> reads as empty.</summary>
+    private ImmutableArray<T> Items => _items.IsDefault ? ImmutableArray<T>.Empty : _items;
 
     /// <inheritdoc />
-    public T this[int index] => _items[index];
+    public int Count => Items.Length;
+
+    /// <inheritdoc />
+    public T this[int index] => Items[index];
 
     /// <summary>Underlying <see cref="ImmutableArray{T}"/> (interop for callers expecting it).</summary>
-    public ImmutableArray<T> AsImmutableArray() => _items.IsDefault ? ImmutableArray<T>.Empty : _items;
+    public ImmutableArray<T> AsImmutableArray() => Items;
 
     /// <summary>Read-only span over the underlying buffer.</summary>
-    public ReadOnlySpan<T> AsSpan() => _items.IsDefault ? default : _items.AsSpan();
+    public ReadOnlySpan<T> AsSpan() => Items.AsSpan();
 
     /// <summary>Struct enumerator (zero-allocation foreach).</summary>
-    public ImmutableArray<T>.Enumerator GetEnumerator() => AsImmutableArray().GetEnumerator();
+    public ImmutableArray<T>.Enumerator GetEnumerator() => Items.GetEnumerator();
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)AsImmutableArray()).GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)AsImmutableArray()).GetEnumerator();
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)Items).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)Items).GetEnumerator();
 
     /// <inheritdoc />
     public bool Equals(EquatableArray<T> other) => AsSpan().SequenceEqual(other.AsSpan());
@@ -65,16 +66,11 @@ public readonly struct EquatableArray<T> :
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(EquatableArray<T> left, EquatableArray<T> right) => !left.Equals(right);
 
-
-    // CA2225: The spec's AsImmutableArray() and AsSpan() already serve as named alternates
-    // for the two implicit operators below.
-#pragma warning disable CA2225
     /// <summary>Implicit conversion from <see cref="ImmutableArray{T}"/>.</summary>
     public static implicit operator EquatableArray<T>(ImmutableArray<T> items) => new(items);
 
     /// <summary>Implicit conversion to <see cref="ReadOnlySpan{T}"/>.</summary>
     public static implicit operator ReadOnlySpan<T>(EquatableArray<T> items) => items.AsSpan();
-#pragma warning restore CA2225
 }
 
 /// <summary>Static factory invoked by <see cref="CollectionBuilderAttribute"/> for collection-expression construction.</summary>

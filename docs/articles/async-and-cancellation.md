@@ -19,14 +19,13 @@ using var reader = new StringReader(source);
 var result = await LrcParser.ParseAsync(reader, cancellationToken: ct);
 ```
 
-`ParseAsync(Stream)` takes a fast path when the input is a `MemoryStream` whose
-backing buffer is exposed (`TryGetBuffer`); otherwise it copies through an
-internal `MemoryStream` then parses synchronously over the resulting span.
+`ParseAsync(Stream)` copies the remaining bytes into memory asynchronously, then
+parses synchronously over the resulting span.
 
 ## Write
 
 ```csharp
-// To a stream — UTF-8 takes a zero-intermediate-string fast path
+// To a stream (encoded with LrcWriteOptions.Encoding, UTF-8 by default)
 using var fs = File.Create("song.lrc");
 await LrcWriter.WriteAsync(doc, fs, cancellationToken: ct);
 

@@ -155,7 +155,7 @@ ModernLrc edges Opportunity.LrcParser on small inputs and trails by 19–27% on 
 | Trim-safe                               |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
 | Nullable reference types                |    ✓     |     ✗       |     ✓       |    ✗    |     ✓       |
 | Target framework                        |  net10.0 | netstandard1.0 | netstandard2.1 | portable PCL | netstandard2.0 |
-| Last release                            |  2026-05 |  2018-05    |  2025-06    | 2015-06 | 2023-11 (archived) |
+| Last release                            |  2026-10 |  2018-05    |  2025-06    | 2015-06 | 2023-11 (archived) |
 
 ¹ SharpLyrics has internal word-time extraction, but the public API surfaces only single-timestamp lines from a file path — no string input.
 ² Opportunity.LrcParser exposes `LineWithSpeaker` for `Speaker: text` patterns, not the Walaoke `M:`/`F:`/`D:` voice protocol with state propagation.

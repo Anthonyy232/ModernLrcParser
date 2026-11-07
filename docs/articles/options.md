@@ -1,56 +1,47 @@
 # Options reference
 
-Both option records are immutable; use `with` expressions to derive variants.
+Both option types are immutable records; derive variants with `with`.
 
 ## `LrcParseOptions`
 
 | Property | Default | Notes |
 |---|---|---|
-| `Strictness` | `Tolerant` | `Strict` throws [`LrcParseException`](xref:ModernLrc.LrcParseException) on the first Error-severity diagnostic. |
-| `Encoding` | `null` (auto-detect) | When non-null, decodes unmarked input with this encoding. A recognised BOM still wins (matches `StreamReader`); strip the BOM yourself to force a different decoding. See [encoding pipeline](encoding-pipeline.md). |
-| `FallbackEncoding` | `Encoding.Latin1` | Used when BOM is absent and bytes are not valid UTF-8 (lossless: every byte maps to a char). Set to `null` to throw instead. |
-| `MaxDiagnostics` | 256 | Cap. `0` suppresses everything (including the `LRC0099` cap notice). Strict-mode bail still works. |
-| `ImplausibleTimestampThreshold` | 24 h | Above this, `LRC0070` is emitted. Set to `TimeSpan.Zero` to disable. |
-
-```csharp
-// Recipe: parse strictly, suppress all diagnostic noise.
-var quietStrict = new LrcParseOptions
-{
-    Strictness = LrcStrictness.Strict,
-    MaxDiagnostics = 0,
-};
-```
+| `Strictness` | `Tolerant` | `Strict` throws [`LrcParseException`](xref:ModernLrc.LrcParseException) on the first Error diagnostic. |
+| `Encoding` | `null` | Encoding for byte input with no BOM. `null` detects UTF-8 and otherwise falls back. See [Encoding pipeline](encoding-pipeline.md). |
+| `FallbackEncoding` | `Encoding.Latin1` | Used when byte input has no BOM and isn't valid UTF-8. `null` throws instead. |
+| `MaxDiagnostics` | `256` | Diagnostics after this many are dropped (`LRC0099`). `0` drops all; strict mode still throws. |
+| `ImplausibleTimestampThreshold` | 24 hours | Timestamps above it get `LRC0070`. `TimeSpan.Zero` turns the check off. |
 
 ## `LrcWriteOptions`
 
 | Property | Default | Notes |
 |---|---|---|
-| `LineEnding` | `Lf` | `Lf`, `Crlf`, `Cr`, or `System` (which falls back to `Lf` if `Environment.NewLine` is unusual). |
-| `Encoding` | UTF-8 | Used for `Stream`, `IBufferWriter<byte>`, and fixed `Span<byte>` paths. A BOM is written only when `EmitByteOrderMark` is `true`. |
-| `EmitByteOrderMark` | `false` | Sole BOM control. `true` prepends `Encoding.GetPreamble()`. |
-| `TrailingNewline` | `true` | Whether the rendered output ends with one line ending. |
-| `TimestampPrecision` | `Centiseconds` | `mm:ss.xx` vs `mm:ss.xxx` (Milliseconds). |
-| `CollapseIdenticalLines` | `true` | Adjacent identical-content lines merge into one multi-timestamp entry (`[t1][t2]text`). This is the round-trip mechanism for inputs originally written as multi-timestamp groups, since the parser fans them out into one line per timestamp. Set `false` to emit one timestamp per line. |
-| `EmitVoiceMarkers` | `true` | When `false`, voice metadata is dropped on render. |
-| `VoiceMarkerOnChangeOnly` | `true` | When `false`, every non-default-voice line gets an explicit marker. |
-| `MetadataOrdering` | `Canonical` | Ordering of the metadata block — see below. |
+| `LineEnding` | `Lf` | `Lf`, `Crlf`, `Cr`, or `System` (`Environment.NewLine`, or `Lf` if that is something else). |
+| `Encoding` | UTF-8 | Used by byte outputs: `Stream`, files, `IBufferWriter<byte>`, `Span<byte>`. |
+| `EmitByteOrderMark` | `false` | Writes the encoding's BOM when `true`. |
+| `TrailingNewline` | `true` | Ends the output with a line ending. |
+| `TimestampPrecision` | `Centiseconds` | `Centiseconds` writes `mm:ss.xx`, `Milliseconds` writes `mm:ss.xxx`. |
+| `CollapseIdenticalLines` | `true` | Writes consecutive lines with the same content and voice as one `[t1][t2]text` line. The parser splits such lines into one per timestamp, so this restores them. |
+| `EmitVoiceMarkers` | `true` | `false` writes no `M:`/`F:`/`D:` markers. |
+| `VoiceMarkerOnChangeOnly` | `true` | `false` writes a marker on every line that has a voice, not only when it changes. |
+| `MetadataOrdering` | `Canonical` | Order of the metadata tags; see below. |
 
-### `MetadataOrdering`
+```csharp
+var windows = new LrcWriteOptions
+{
+    LineEnding = LrcLineEnding.Crlf,
+    EmitByteOrderMark = true,
+};
+```
 
-- **`Canonical`** — typed values not already covered by raw tags are emitted as
-  `ti, ar, al, au, lr, length, by, offset, re, ve`, then `RawTags` in original
-  array order. For parsed documents this preserves duplicate/conflicting typed
-  tags exactly.
-- **`Alphabetical`** — typed values not already covered by raw tags are emitted A→Z
-  by C# property name (Album, Artist, Author, …), then `RawTags` A→Z by key.
+### Metadata
 
-The typed properties are authoritative. Raw tags of a known key (`ti`, `length`, …)
-are written verbatim only while re-parsing them would still give the typed value, so
-unchanged parsed metadata keeps duplicate or conflicting source tags (and unparseable
-ones such as `[length:abc]`). Once a typed property differs — whether edited through
-`LrcDocumentBuilder` or with `metadata with { Title = "New" }` — its raw tags are
-dropped and the typed value is written instead. Setting a typed property to `null`
-removes the tag from the output.
+The typed properties on `LrcMetadata` (`Title`, `Artist`, …) decide what is written.
+Raw tags with a known key (`ti`, `length`, …) are written as they were only while
+they still give the typed value, so unchanged parsed metadata keeps duplicate,
+conflicting or unparseable tags such as `[length:abc]`. Once you change a typed
+property, its raw tags are dropped and the new value is written. Setting it to `null`
+removes the tag.
 
 ```csharp
 var doc = LrcParser.Parse("[ti:Old]\n[xx:custom]\n[00:01.00]hi").Document;
@@ -58,23 +49,10 @@ var edited = doc with { Metadata = doc.Metadata with { Title = "New" } };
 LrcWriter.Write(edited);   // "[ti:New]\n[xx:custom]\n\n[00:01.00]hi\n"
 ```
 
-### `LineEnding`
+`MetadataOrdering` sets the order:
 
-`System` resolves to `Environment.NewLine` if that's `\n`, `\r\n`, or `\r`;
-otherwise it falls back to `\n` to keep output predictable across exotic
-hosts.
-
-### `TrailingNewline`
-
-When `false`, the renderer does not add its usual final line ending. User text
-is still preserved verbatim, including any trailing `\r` or `\n` inside a lyric line.
-
-```csharp
-// Recipe: Windows-friendly output with explicit BOM.
-var winFriendly = new LrcWriteOptions
-{
-    LineEnding = LrcLineEnding.Crlf,
-    EmitByteOrderMark = true,
-    Encoding = Encoding.UTF8,
-};
-```
+- **`Canonical`**: typed values not written from raw tags, in the order
+  `ti, ar, al, au, lr, length, by, offset, re, ve`, then the raw tags in their
+  original order.
+- **`Alphabetical`**: typed values not written from raw tags, A to Z by property
+  name (`Album`, `Artist`, `Author`, …), then the raw tags A to Z by key.

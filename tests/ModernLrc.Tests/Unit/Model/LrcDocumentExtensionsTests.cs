@@ -24,9 +24,9 @@ public sealed class LrcDocumentExtensionsTests
     }
 
     [Fact]
-    public void GetEffectiveTime_NegativeOffset_CanProduceNegativeTimeSpan()
+    public void GetEffectiveTime_PositiveOffset_CanProduceNegativeTimeSpan()
     {
-        var doc = BuildDoc(TimeSpan.FromMilliseconds(-500));
+        var doc = BuildDoc(TimeSpan.FromMilliseconds(500));
         var t = LrcTimestamp.FromMilliseconds(200);
         doc.GetEffectiveTime(t).TotalMilliseconds.ShouldBe(-300);
     }
@@ -71,8 +71,8 @@ public sealed class LrcDocumentExtensionsTests
     [Fact]
     public void FindLineAt_HonoursOffset()
     {
-        // offset = -500 means line at 1_000 effectively starts at 500.
-        var doc = BuildDoc(TimeSpan.FromMilliseconds(-500), (1_000, "a"), (2_000, "b"));
+        // A positive offset shows lyrics sooner, as in other LRC players: +500 moves the line at 1_000 to 500.
+        var doc = BuildDoc(TimeSpan.FromMilliseconds(500), (1_000, "a"), (2_000, "b"));
         var line = doc.FindLineAt(TimeSpan.FromMilliseconds(500));
         ((LrcPlainLine)line!).Text.ShouldBe("a");
     }

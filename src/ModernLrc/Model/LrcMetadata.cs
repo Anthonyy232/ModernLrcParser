@@ -51,7 +51,8 @@ public sealed record LrcMetadata
     /// <summary>Track length (<c>length:mm:ss</c>) when known.</summary>
     public TimeSpan? Length { get; init; }
 
-    /// <summary>Document timing offset (<c>offset:±N</c> milliseconds). Zero by default.</summary>
+    /// <summary>Document timing offset (<c>offset:±N</c> milliseconds). Positive shows lyrics
+    /// sooner, negative later. Zero by default.</summary>
     public TimeSpan Offset { get; init; }
 }
 

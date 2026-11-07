@@ -7,8 +7,9 @@ namespace ModernLrc.Model;
 /// <see cref="FindLineAt"/> per video frame.</summary>
 public static class LrcDocumentExtensions
 {
-    /// <summary>Apply the document offset to <paramref name="t"/>. Returns <see cref="TimeSpan"/>
-    /// (signed) because a large negative <see cref="LrcMetadata.Offset"/> can shift past zero —
+    /// <summary>Apply the document offset to <paramref name="t"/>: <c>t − Offset</c>, so a positive
+    /// <see cref="LrcMetadata.Offset"/> shows lyrics sooner, as in other LRC players. Returns
+    /// <see cref="TimeSpan"/> (signed) because a large positive offset can shift past zero —
     /// <see cref="LrcTimestamp"/> cannot represent that.</summary>
     /// <param name="doc">The owning document.</param>
     /// <param name="t">A timestamp (typically from <see cref="LrcLine.Timestamp"/>).</param>
@@ -23,7 +24,7 @@ public static class LrcDocumentExtensions
     public static TimeSpan GetEffectiveTime(this LrcDocument doc, LrcTimestamp t)
     {
         ArgumentNullException.ThrowIfNull(doc);
-        return t.ToTimeSpan() + doc.Metadata.Offset;
+        return t.ToTimeSpan() - doc.Metadata.Offset;
     }
 
     /// <summary>Currently-singing line: greatest line whose effective timestamp is
@@ -62,7 +63,7 @@ public static class LrcDocumentExtensions
         return lines[lo];
 
         static TimeSpan EffectiveAt(LrcLine line, TimeSpan offset)
-            => line.Timestamp.ToTimeSpan() + offset;
+            => line.Timestamp.ToTimeSpan() - offset;
     }
 
     /// <summary>Lines whose effective timestamp ∈ <c>[start, end)</c>.
@@ -78,7 +79,7 @@ public static class LrcDocumentExtensions
         var offset = doc.Metadata.Offset;
         foreach (var line in doc.Lines)
         {
-            var t = line.Timestamp.ToTimeSpan() + offset;
+            var t = line.Timestamp.ToTimeSpan() - offset;
             if (t >= start && t < end)
                 yield return line;
         }

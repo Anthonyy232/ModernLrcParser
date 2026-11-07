@@ -9,13 +9,14 @@ playback position, for example to show the current line of a song while it plays
 Line timestamps are kept as written. `[offset:N]` is stored in
 [`LrcMetadata.Offset`](xref:ModernLrc.Model.LrcMetadata.Offset), so writing the document
 gives back the same tag. The lookup methods apply it for you: a line's effective time is
-its timestamp plus `Offset`.
+its timestamp minus `Offset`, so a positive offset shows lyrics sooner and a negative one
+later, as in other LRC players.
 
 ```csharp
 TimeSpan effective = doc.GetEffectiveTime(line.Timestamp);
 ```
 
-`GetEffectiveTime` returns a `TimeSpan` because a negative offset can take it below
+`GetEffectiveTime` returns a `TimeSpan` because a positive offset can take it below
 zero, which an `LrcTimestamp` can't represent.
 
 ## Current line

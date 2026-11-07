@@ -6,6 +6,12 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `[offset:N]` now shifts lyrics the way other LRC players do: a positive offset shows
+  them sooner. `GetEffectiveTime`, `FindLineAt` and `LinesInRange` used to add the
+  offset, which delayed them instead.
+
 ## [2.0.1] — 2026-10-13
 
 ### Performance

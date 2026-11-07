@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +41,14 @@ jobs:
           name: nupkg
           path: nupkg/*.nupkg
 
+      # Trusted publishing: exchanges the job's OIDC token for a short-lived NuGet key.
+      - name: NuGet login
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: nuget
+        uses: NuGet/login@v1
+        with:
+          user: Anthonyy232
+
       - name: Push to NuGet
         if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet nuget push "nupkg/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "nupkg/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -1,87 +1,54 @@
 # Encoding pipeline
 
-When you hand the parser bytes (`ReadOnlySpan<byte>`, `byte[]`, `Stream`, file path),
-it runs a four-step pipeline to decide how to decode them:
+Byte input (`ReadOnlySpan<byte>`, `byte[]`, `Stream`, file path) is decoded in this order:
 
-1. **BOM detection.** UTF-8 (`EF BB BF`), UTF-16 LE (`FF FE`), UTF-16 BE (`FE FF`).
-   If a BOM is found, that encoding is used and the BOM bytes are stripped.
-2. **Caller override.** [`LrcParseOptions.Encoding`](xref:ModernLrc.LrcParseOptions.Encoding)
-   wins over auto-detection of unmarked input if set. (BOM detection in step 1 still wins
-   over this — matching `StreamReader`. Strip the BOM bytes yourself to force a different
-   decoding.)
-3. **UTF-8 validation.** The bytes are checked with `Utf8.IsValid`. If valid,
-   they're decoded as UTF-8.
-4. **Fallback.** If none of the above produced a string and
-   [`FallbackEncoding`](xref:ModernLrc.LrcParseOptions.FallbackEncoding) is non-null,
-   it's used and the parser emits diagnostic
-   [`LRC0010 EncodingFallback`](diagnostics-reference.md#encoding) at **Error severity**
-   (the Error tier is intentional — falling back should be a conscious choice).
-   If `FallbackEncoding` is null, [`LrcParseException`](xref:ModernLrc.LrcParseException)
-   is thrown.
+1. **BOM.** A UTF-8 (`EF BB BF`), UTF-16 LE (`FF FE`) or UTF-16 BE (`FE FF`) byte order
+   mark selects that encoding, and the BOM is dropped.
+2. **Your encoding.** If [`LrcParseOptions.Encoding`](xref:ModernLrc.LrcParseOptions.Encoding)
+   is set, it is used. A BOM still wins, as with `StreamReader`; strip it yourself to
+   force a different encoding.
+3. **UTF-8.** Valid UTF-8 is decoded as UTF-8.
+4. **Fallback.** Anything else is decoded with
+   [`FallbackEncoding`](xref:ModernLrc.LrcParseOptions.FallbackEncoding), Latin-1 by
+   default, and reported as [`LRC0010`](diagnostics-reference.md#encoding) with Error
+   severity. If `FallbackEncoding` is `null`, `LrcParseException` is thrown instead.
 
-## Defaults
+Latin-1 maps every byte to a character, so decoding never fails and nothing becomes
+U+FFFD. Western European text (for example a Windows-1252 `é`) comes through intact.
+Because `LRC0010` is an Error, strict mode throws on it.
 
-| Option | Default |
-|---|---|
-| `Encoding` | `null` (auto-detect) |
-| `FallbackEncoding` | `Encoding.Latin1` |
+## Legacy code pages
 
-So the out-of-the-box behaviour is: BOM → UTF-8 strict → Latin-1 fallback. Latin-1 maps
-every byte to a char, so decoding always succeeds and nothing is replaced with U+FFFD;
-Western European files (e.g. Windows-1252 `é`) come through intact, and `LRC0010` tells
-you the fallback was used. For other legacy codepages, set `Encoding` (below).
-
-## Non-Unicode codepages
-
-For Shift-JIS, GBK, Big5, EUC-KR, and similar legacy codepages with no BOM,
-**you must pass the encoding explicitly** — statistical detection is intentionally
-out of scope for this library.
+Shift-JIS, GBK, Big5, EUC-KR and other legacy encodings aren't detected. Set
+`Encoding` to the file's encoding. .NET only includes ASCII, Latin-1 and the Unicode
+encodings until you register the code pages provider, once at startup:
 
 ```csharp
-// Decode a GBK-encoded Chinese LRC file.
-var options = new LrcParseOptions
-{
-    Encoding = System.Text.Encoding.GetEncoding("GBK"),
-};
-var result = LrcParser.Parse(File.ReadAllBytes("song.lrc"), options);
+using System.Text;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+var options = new LrcParseOptions { Encoding = Encoding.GetEncoding("GBK") };
+var result = LrcParser.ParseFile("song.lrc", options);
 ```
 
-To use codepages other than the ASCII / Latin / Unicode set baked into .NET,
-add the `System.Text.Encoding.CodePages` package and call
-`Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)` once at startup.
-
-## Fail loud on encoding ambiguity
-
-Sometimes you'd rather throw than silently decode garbage:
+## Throw instead of falling back
 
 ```csharp
-var failLoud = new LrcParseOptions { FallbackEncoding = null };
+var noFallback = new LrcParseOptions { FallbackEncoding = null };
 try
 {
-    LrcParser.Parse(suspectBytes, failLoud);
+    LrcParser.Parse(bytes, noFallback);
 }
 catch (LrcParseException)
 {
-    // BOM was absent and bytes are not valid UTF-8.
+    // No BOM, and the bytes aren't valid UTF-8.
 }
 ```
 
-## Streaming-service exports
+## Writing
 
-Some lyrics services prefix their LRC output with an ISO 639-1 (2-letter) or
-ISO 639-2 (3-letter) language code: `en||[ti:Title]…` or `eng||[ti:Title]…`.
-The parser detects either form and strips it, emitting
-[`LRC0092 Id3LanguagePrefixStripped`](diagnostics-reference.md#tolerance--pragmatic)
-so callers can audit the input shape if needed.
-
-## Write side
-
-The writer's encoding is configured via
-[`LrcWriteOptions.Encoding`](xref:ModernLrc.LrcWriteOptions.Encoding) (default
-UTF-8) and
-[`LrcWriteOptions.EmitByteOrderMark`](xref:ModernLrc.LrcWriteOptions.EmitByteOrderMark)
-(sole BOM control — set `true` to prepend the encoding's preamble; set `false`
-to skip it regardless of the encoding's natural BOM).
-
-Stream, `IBufferWriter<byte>`, and fixed `Span<byte>` outputs honor
-`LrcWriteOptions.Encoding`: the document is rendered to chars once, then encoded.
+Byte outputs (`Stream`, files, `IBufferWriter<byte>`, `Span<byte>`) use
+[`LrcWriteOptions.Encoding`](xref:ModernLrc.LrcWriteOptions.Encoding), UTF-8 by default.
+A BOM is written only when
+[`EmitByteOrderMark`](xref:ModernLrc.LrcWriteOptions.EmitByteOrderMark) is `true`.

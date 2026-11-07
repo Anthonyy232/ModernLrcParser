@@ -36,8 +36,8 @@ public sealed record LrcParseOptions
     /// <summary>Force the input encoding for byte/stream inputs. <c>null</c> = auto-detect
     /// (BOM → UTF-8 validation → fallback). If your file is non-UTF-8 and has no BOM, set
     /// this — otherwise <see cref="FallbackEncoding"/> is used and <c>LRC0010</c> is reported.
-    /// For non-Unicode codepages, bring <c>System.Text.Encoding.CodePages</c> as a
-    /// transitive dependency yourself.
+    /// For legacy code pages such as Shift-JIS or GBK, call
+    /// <c>Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)</c> first.
     /// <para>Note: a recognised BOM (UTF-8, UTF-16 LE, UTF-16 BE) takes precedence over this
     /// property — matching <see cref="System.IO.StreamReader"/>'s behaviour. Strip the BOM
     /// from the byte array yourself if you need to force a different decoding.</para></summary>

@@ -59,7 +59,7 @@ public static class LrcDiagnosticIds
     /// <summary>Implausible timestamp (&gt; 24h) — value still parsed.</summary>
     public const string ImplausibleTimestamp = "LRC0070";
 
-    /// <summary>Empty enhanced word (back-to-back <c>&lt;&gt;</c> markers).</summary>
+    /// <summary>Enhanced line with no valid word timestamps.</summary>
     public const string EmptyEnhancedWord = "LRC0080";
 
     /// <summary>Unrepresentable voice transition (Walaoke has no "clear voice" marker) — write side.</summary>

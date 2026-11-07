@@ -9,7 +9,6 @@ namespace ModernLrc;
 /// <see cref="IBufferWriter{T}"/> (chars or encoded bytes), fixed <see cref="Span{T}"/>
 /// (via the <c>TryWrite</c> family), and a path on disk
 /// (<see cref="WriteFile(LrcDocument, string, LrcWriteOptions?)"/>, atomic via temp + rename).</para>
-/// <para>The <see cref="IBufferWriter{T}"/> char sink is zero-allocation beyond consumer-buffer growth.</para>
 /// </remarks>
 /// <example>
 /// <code>
@@ -69,8 +68,7 @@ public static partial class LrcWriter
         stream.Write(Encode(document, options));
     }
 
-    /// <summary>Render directly into an <see cref="IBufferWriter{T}"/> of chars. Zero allocations
-    /// beyond consumer buffer growth.</summary>
+    /// <summary>Render directly into an <see cref="IBufferWriter{T}"/> of chars.</summary>
     /// <param name="document">The document to render.</param>
     /// <param name="writer">Destination buffer writer.</param>
     /// <param name="options">Write options.</param>
@@ -112,8 +110,7 @@ public static partial class LrcWriter
     /// <returns><c>false</c> when <paramref name="destination"/> is too small; <c>true</c> on success.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="document"/> is null.</exception>
     /// <remarks>The implementation renders to a staging buffer first to know the exact size,
-    /// then copies into <paramref name="destination"/>. For zero-allocation rendering use the
-    /// <see cref="IBufferWriter{T}"/> overload instead.</remarks>
+    /// then copies into <paramref name="destination"/>.</remarks>
     public static bool TryWrite(LrcDocument document, Span<char> destination, out int charsWritten, LrcWriteOptions? options = null)
     {
         using var chars = RenderChars(document, options);

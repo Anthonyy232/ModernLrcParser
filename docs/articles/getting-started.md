@@ -6,12 +6,13 @@
 dotnet add package ModernLrc
 ```
 
-Requires .NET 10 SDK.
+Requires a project targeting .NET 10 (`net10.0`).
 
 ## Parse
 
-The canonical entry is `LrcParser.Parse(string)`. The result always carries a
-`Document` plus every `Diagnostic` that was emitted during the scan.
+`LrcParser.Parse` returns an [`LrcParseResult`](xref:ModernLrc.LrcParseResult): the
+`Document` and the `Diagnostics` reported while parsing. Other overloads take a span,
+`ReadOnlyMemory<char>`, `TextReader`, bytes, a `Stream`, or a file path (`ParseFile`).
 
 ```csharp
 using ModernLrc;
@@ -27,21 +28,26 @@ const string source = """
 
 var result = LrcParser.Parse(source);
 
-Console.WriteLine(result.Document.Metadata.Title);    // "Demo Song"
+Console.WriteLine(result.Document.Metadata.Title);    // Demo Song
 Console.WriteLine(result.Document.Lines.Count);       // 3
-Console.WriteLine(result.HasErrors);                  // false
+Console.WriteLine(result.HasErrors);                  // False
 ```
 
-### Inspecting lines
+A line with several timestamps (`[t1][t2]text`) becomes one line per timestamp, and
+lines are sorted by timestamp.
+
+### Lines
+
+Each line is either an `LrcPlainLine` or, when it has `<…>` word timing, an
+`LrcEnhancedLine`.
 
 ```csharp
 foreach (var line in result.Document.Lines)
 {
-    var t = line.Timestamp;
     switch (line)
     {
         case LrcPlainLine plain:
-            Console.WriteLine($"[{t}] {plain.EffectiveVoice}: {plain.Text}");
+            Console.WriteLine($"[{line.Timestamp}] {line.EffectiveVoice}: {plain.Text}");
             break;
 
         case LrcEnhancedLine enhanced:
@@ -53,19 +59,23 @@ foreach (var line in result.Document.Lines)
 }
 ```
 
-### Inspecting diagnostics
+`line.GetText()` gives the text of either kind.
 
-Every recoverable issue is recorded — even on `HasErrors == false` you can find
-informational notes (e.g. `LRC0030` for non-standard timestamp variants):
+### Diagnostics
+
+By default, malformed input doesn't throw. Each problem is reported with a code, severity and
+position, and parsing continues. Info diagnostics (for example `LRC0030` for a
+non-standard timestamp such as `[00:01]`) can appear even when `HasErrors` is false.
 
 ```csharp
 foreach (var d in result.Diagnostics)
-    Console.WriteLine($"{d.Code} {d.Severity} L{d.Line}:C{d.Column} — {d.Message}");
+    Console.WriteLine($"{d.Code} {d.Severity} L{d.Line}:C{d.Column} {d.Message}");
 ```
 
-See the [diagnostics reference](diagnostics-reference.md) for the full code catalogue.
+See the [diagnostics reference](diagnostics-reference.md) for every code and for
+strict mode.
 
-## Author
+## Author and edit
 
 ```csharp
 var doc = new LrcDocumentBuilder()
@@ -77,8 +87,10 @@ var doc = new LrcDocumentBuilder()
     .Build();
 ```
 
-The builder is mutable and chainable. `Build()` is idempotent — call it as many
-times as you want; it doesn't reset the builder's state.
+`Build()` sorts the lines and leaves the builder unchanged, so you can keep adding
+lines and build again. To edit a parsed document, seed a builder with it
+(`new LrcDocumentBuilder(parsed)`) or use a `with` expression; documents are
+immutable records.
 
 ## Write
 
@@ -87,39 +99,61 @@ times as you want; it doesn't reset the builder's state.
 string lrc = LrcWriter.Write(doc);
 
 // To a stream (UTF-8 by default)
-using var fs = File.Create("song.lrc");
-LrcWriter.Write(doc, fs);
+using (var fs = File.Create("song.lrc"))
+    LrcWriter.Write(doc, fs);
 
-// Atomic file write (temp + rename)
+// To a file, atomically (temp file + rename)
 LrcWriter.WriteFile(doc, "song.lrc");
 
-// Zero-allocation: render straight into your own char buffer writer
+// Into your own char buffer
 var bw = new System.Buffers.ArrayBufferWriter<char>();
 LrcWriter.Write(doc, bw);
-ReadOnlySpan<byte> bytes = bw.WrittenSpan;
+ReadOnlySpan<char> chars = bw.WrittenSpan;
 ```
 
-## Round-trip
+`TryWrite` renders into a fixed `Span<char>` or `Span<byte>` and returns `false` if it
+is too small. Formatting, encoding and line endings are set with
+[`LrcWriteOptions`](options.md#lrcwriteoptions).
 
-The parser and writer are designed to round-trip losslessly for the supported
-grammar (modulo whitespace inside the line that wasn't normalized at parse time).
-Specifically: voice markers, multi-timestamp lines, enhanced word timing,
-metadata block, and the verbatim `[offset:N]` tag all survive a parse → write
-cycle. Literal lyric text that itself contains valid LRC markers is interpreted
-as LRC syntax when parsed again; escape or filter such display text before
-authoring if you need it to remain plain.
+## Async and cancellation
+
+The `Stream`, `TextReader`/`TextWriter` and file overloads have async versions that
+take a `CancellationToken`:
+
+```csharp
+var parsed = await LrcParser.ParseFileAsync("song.lrc", cancellationToken: ct);
+
+using (var stream = File.OpenRead("song.lrc"))
+    parsed = await LrcParser.ParseAsync(stream, cancellationToken: ct);
+
+await LrcWriter.WriteFileAsync(doc, "song.lrc", cancellationToken: ct);
+```
+
+The token is checked before any I/O and passed to the underlying read or write. A
+token that is already cancelled throws `OperationCanceledException` without doing any
+I/O. Parsing and rendering themselves run synchronously and aren't cancelled once
+started.
+
+## Round trips
+
+Writing a parsed document and parsing the output gives an equal document, apart from
+millisecond timestamps (see below). Voice markers, multi-timestamp lines, word timing,
+metadata (including duplicate and unknown tags) and the original `[offset:N]` tag are
+kept.
 
 ```csharp
 var doc1 = LrcParser.Parse(source).Document;
-var rendered = LrcWriter.Write(doc1);
-var doc2 = LrcParser.Parse(rendered).Document;
-// doc1.Lines structurally equal doc2.Lines
+var doc2 = LrcParser.Parse(LrcWriter.Write(doc1)).Document;
+Console.WriteLine(doc1 == doc2);   // True
 ```
 
-## Next steps
+The file isn't reproduced byte for byte: timestamps are written in the standard form
+and untimed text is dropped. Beyond that:
 
-- [Encoding pipeline](encoding-pipeline.md) — non-UTF-8 input, BOM behaviour
-- [Async and cancellation](async-and-cancellation.md) — large files, off-UI-thread
-- [Playback](playback.md) — `FindLineAt`, `LinesInRange`, the offset semantics
-- [Options reference](options.md) — every option on `LrcParseOptions` / `LrcWriteOptions`
-- [Diagnostics reference](diagnostics-reference.md) — what every `LRC00xx` code means
+- Timestamps are written as `mm:ss.xx` by default, so `[00:01.505]` comes back as
+  `[00:01.50]`. Set `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to keep
+  milliseconds.
+- In documents you build or edit, lyric text that looks like LRC syntax (such as
+  `<00:01.00>` or a leading `F: `) is read as syntax when parsed again.
+- A line can't go back to the default voice after an `M:`/`F:`/`D:` line; see
+  `LRC0090` in the [diagnostics reference](diagnostics-reference.md#write-side).

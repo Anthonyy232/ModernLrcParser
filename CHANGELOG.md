@@ -6,6 +6,8 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+## [2.0.2] — 2026-11-07
+
 ### Fixed
 
 - `[offset:N]` now shifts lyrics the way other LRC players do: a positive offset shows
@@ -116,7 +118,8 @@ Initial public release. Modern, AOT-compatible LRC (lyrics) parser/writer for
 Walaoke voice markers), tolerant-by-default with a stable diagnostic catalogue,
 sync + async overloads for every input shape, and zero-allocation writer paths.
 
-[Unreleased]: https://github.com/Anthonyy232/ModernLrcParser/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/Anthonyy232/ModernLrcParser/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.2
 [2.0.1]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.1
 [2.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.0
 [1.2.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v1.2.0

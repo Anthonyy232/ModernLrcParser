@@ -6,16 +6,30 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
-### Fixed
-
-- A document built with `LrcDocumentBuilder`, or edited with `with`, is now equal to the
-  result of writing and parsing it. `LrcMetadata` equality compares the typed properties
-  and the tags that would be written, so raw tags made stale by an edit no longer count.
-
-### Changed
+### Changed (breaking)
 
 - ModernLrc is now licensed under GPL-3.0-only. Versions up to 2.0.2 remain under the MIT
   License.
+- `LrcMetadata` equality and hashing ignore raw tags made stale by an edit to a typed
+  property: two instances are equal when their typed properties match and they would be
+  written with the same tags. Code that compared metadata to detect a change in
+  `RawTags`, or used it as a dictionary key, can see instances as equal that used to differ.
+- `LrcMetadataOrdering.Alphabetical` now writes every tag in one sequence sorted by key.
+  Typed values with no raw tag used to be written first, in property-name order (`ti`
+  before `re`), so the output wasn't sorted.
+- `LrcDocumentBuilder` throws `ArgumentException` for metadata that can't be read back:
+  a value containing `]` or a line break, a raw-tag key that starts with a digit or
+  contains `:`, `[`, `]` or a line break, and a negative `Length`.
+- `LrcDocumentBuilder.WithRawTag` lower-cases the key, as the parser does, and
+  `RemoveRawTag` matches it case-insensitively.
+
+### Fixed
+
+- A document built with `LrcDocumentBuilder`, or edited with `with`, is now equal to the
+  result of writing it with the default options and parsing it.
+
+### Changed
+
 - The NuGet package has an icon and its own short README.
 
 ## [2.0.2] — 2026-11-07

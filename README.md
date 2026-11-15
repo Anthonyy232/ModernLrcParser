@@ -61,12 +61,12 @@ Walaoke `M:`, `F:` and `D:` markers apply to their line and every line after it 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/readme/feature-roundtrip-dark.png">
-  <img src=".github/readme/feature-roundtrip-light.png" alt="04. Out as it came in. A parsed document is shifted by 1.5 seconds and written back with its offset tag, grouped timestamps, voice marker and word timing; parsing the output gives an equal document.">
+  <img src=".github/readme/feature-roundtrip-light.png" alt="04. Out as it came in. A parsed document is shifted by 1.5 seconds and written back with its offset tag, grouped timestamps, voice marker and word timing; parsing the output gives an equal document, within the documented round-trip limits.">
 </picture>
 
 Documents are immutable records. Edit one with `LrcDocumentBuilder` or a `with` expression, then write it to a string, `TextWriter`, `Stream`, `IBufferWriter<char>` or `IBufferWriter<byte>`, a fixed span (`TryWrite`), or a file (written atomically).
 
-Writing a parsed document and parsing it again gives an equal document, keeping the original `[offset:N]` tag. Timestamps are written as `mm:ss.xx` by default, so millisecond timestamps need `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to survive. `LrcWriter.ValidateForWrite` reports anything that can't be written back.
+Writing a document with the default options and parsing it again gives an equal document, keeping the original `[offset:N]` tag. Timestamps are written as `mm:ss.xx` by default, so millisecond timestamps need `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to survive; [Round trips](https://anthonyy232.github.io/ModernLrcParser/articles/getting-started.html#round-trips) lists the other limits. `LrcWriter.ValidateForWrite` reports voice changes that can't be written back.
 
 ## Install
 

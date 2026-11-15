@@ -136,9 +136,9 @@ started.
 
 ## Round trips
 
-Writing a document and parsing the output gives an equal document, whether it was
-parsed, built with `LrcDocumentBuilder` or edited with `with`, apart from the cases
-listed below. Voice markers, multi-timestamp lines, word timing, metadata (including
+Writing a document with the default options and parsing the output gives an equal
+document, whether it was parsed, built with `LrcDocumentBuilder` or edited with
+`with`, apart from the cases listed below. Voice markers, multi-timestamp lines, word timing, metadata (including
 duplicate and unknown tags) and the original `[offset:N]` tag are kept.
 
 ```csharp
@@ -151,13 +151,20 @@ The file isn't reproduced byte for byte: timestamps are written in the standard 
 and untimed text is dropped. Beyond that:
 
 - Timestamps are written as `mm:ss.xx` by default, so `[00:01.505]` comes back as
-  `[00:01.50]`. Set `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to keep
-  milliseconds.
+  `[00:01.50]`, and so does a line shifted by a few milliseconds. Set
+  `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to keep milliseconds.
+- `MetadataOrdering = LrcMetadataOrdering.Alphabetical` writes the tags in a different
+  order, so the result has the same values but isn't equal.
 - Two documents are equal when their lines and typed metadata match and they would be
   written with the same tags. `Metadata.RawTags` itself can differ: a parsed document
   lists every tag it read, a built one only those passed to `WithRawTag`, and raw
   tags left stale by an edit to a typed property are ignored.
-- `Length` is written as `mm:ss`, so fractions of a second are lost.
+- `Length` is written as `mm:ss` and `Offset` in whole milliseconds; anything finer
+  is lost.
+- A metadata value can't contain `]` or a line break, and a tag key can't start with
+  a digit or contain `:`, `[`, `]` or a line break. `LrcDocumentBuilder` throws
+  `ArgumentException` for these; a record built directly or with `with` isn't
+  checked, and such a tag doesn't parse back.
 - In documents you build or edit, lyric text that looks like LRC syntax (such as
   `<00:01.00>` or a leading `F: `) is read as syntax when parsed again.
 - A line can't go back to the default voice after an `M:`/`F:`/`D:` line; see

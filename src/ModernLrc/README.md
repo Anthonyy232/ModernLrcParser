@@ -6,7 +6,7 @@ A fast LRC (lyrics) parser and writer for .NET 10. Native AOT compatible, trim-s
 - Malformed input produces diagnostics with stable codes and line/column positions instead of exceptions.
 - Reads strings, spans, `TextReader`, bytes, streams and files, sync and async, with encoding detection.
 - `FindLineAt` and `LinesInRange` look up lines by playback position, applying `[offset:N]`.
-- Writing a parsed document and parsing it again gives an equal document.
+- Writing a document and parsing it again gives an equal document, within the [round-trip limits](https://anthonyy232.github.io/ModernLrcParser/articles/getting-started.html#round-trips) (timestamps are written as `mm:ss.xx` by default).
 
 ```csharp
 using ModernLrc;

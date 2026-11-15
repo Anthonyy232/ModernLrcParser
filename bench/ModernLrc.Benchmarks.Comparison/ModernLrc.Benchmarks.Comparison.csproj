@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ModernLrc.Benchmarks.Comparison</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;IDE0005;CA1303;CA1515;CA1707;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <!-- PCL-only package: restores through the .NET Framework fallback -->
+    <PackageReference Include="Kfstorm.LrcParser" NoWarn="NU1701" />
+    <PackageReference Include="LrcParser" />
+    <PackageReference Include="Opportunity.LrcParser" />
+    <PackageReference Include="SharpLyrics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ModernLrc\ModernLrc.csproj" />
+  </ItemGroup>
+
+</Project>

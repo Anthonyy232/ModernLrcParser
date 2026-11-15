@@ -204,7 +204,7 @@ ModernLrc parses 1.3–2.1× faster than Opportunity.LrcParser, the next fastest
 - Inputs are `string` constants of basic LRC with an ID3 header, so no file I/O is timed. SharpLyrics only reads files, so its input is written to a temp file during setup.
 - Each library is called through its simplest public entry point, untuned. Write benchmarks start from the library's own parsed model, so only serialization is timed.
 - BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, AMD Ryzen 7 9850X3D. Absolute numbers vary by machine; compare the ratios.
-- The harness is on the [`bench/comparison`](https://github.com/Anthonyy232/ModernLrcParser/tree/bench/comparison) branch.
+- The harness is [`bench/ModernLrc.Benchmarks.Comparison`](bench/ModernLrc.Benchmarks.Comparison); run it with `dotnet run -c Release --project bench/ModernLrc.Benchmarks.Comparison -- --filter "*"`.
 
 ## Contributing
 

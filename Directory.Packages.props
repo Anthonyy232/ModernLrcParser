@@ -5,6 +5,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="Kfstorm.LrcParser" Version="1.0.3" />
+    <PackageVersion Include="LrcParser" Version="2025.623.0" />
+    <PackageVersion Include="Opportunity.LrcParser" Version="1.0.4" />
+    <PackageVersion Include="SharpLyrics" Version="1.0.0.2" />
     <PackageVersion Include="CsCheck" Version="5.0.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />

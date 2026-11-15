@@ -56,27 +56,35 @@ public sealed class LrcDocumentBuilder
     public LrcLine GetLineAt(int index) => _lines[index];
 
     /// <summary>Set or clear the title (<c>ti</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithTitle(string? value) => Set(LrcMetadataField.Title, value);
 
     /// <summary>Set or clear the artist (<c>ar</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithArtist(string? value) => Set(LrcMetadataField.Artist, value);
 
     /// <summary>Set or clear the album (<c>al</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithAlbum(string? value) => Set(LrcMetadataField.Album, value);
 
     /// <summary>Set or clear the author (<c>au</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithAuthor(string? value) => Set(LrcMetadataField.Author, value);
 
     /// <summary>Set or clear the lyricist (<c>lr</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithLyricist(string? value) => Set(LrcMetadataField.Lyricist, value);
 
     /// <summary>Set or clear the created-by attribution (<c>by</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithCreatedBy(string? value) => Set(LrcMetadataField.CreatedBy, value);
 
     /// <summary>Set or clear the tool (<c>re</c> / <c>tool</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithTool(string? value) => Set(LrcMetadataField.Tool, value);
 
     /// <summary>Set or clear the version (<c>ve</c>).</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithVersion(string? value) => Set(LrcMetadataField.Version, value);
 
     /// <summary>Set or clear the track length (<c>length:mm:ss</c>).</summary>

@@ -3,13 +3,16 @@ name: release
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -43,12 +46,16 @@ jobs:
 
       # Trusted publishing: exchanges the job's OIDC token for a short-lived NuGet key.
       - name: NuGet login
-        if: startsWith(github.ref, 'refs/tags/v')
         id: nuget
         uses: NuGet/login@v1
         with:
           user: Anthonyy232
 
       - name: Push to NuGet
-        if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet nuget push "nupkg/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      # The release is drafted by hand before the tag exists; the tag only has to publish it.
+      - name: Publish the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest

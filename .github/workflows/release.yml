@@ -9,11 +9,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
 
@@ -44,6 +43,27 @@ jobs:
           name: nupkg
           path: nupkg/*.nupkg
 
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: nupkg
+          path: nupkg
+
+      # A pushed package can't be taken back, so stop before it if the release can't finish.
+      - name: Check the tag matches the package and a draft release exists
+        run: |
+          test -f "nupkg/ModernLrc.${GITHUB_REF_NAME#v}.nupkg"
+          test "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" = true
+
       # Trusted publishing: exchanges the job's OIDC token for a short-lived NuGet key.
       - name: NuGet login
         id: nuget
@@ -54,8 +74,5 @@ jobs:
       - name: Push to NuGet
         run: dotnet nuget push "nupkg/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-      # The release is drafted by hand before the tag exists; the tag only has to publish it.
       - name: Publish the draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest

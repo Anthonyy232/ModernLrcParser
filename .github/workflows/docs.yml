@@ -10,6 +10,7 @@ on:
       - 'assets/logo-small.svg'
       - '.github/workflows/docs.yml'
       - 'global.json'
+      - 'dotnet-tools.json'
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
   workflow_dispatch:
@@ -38,11 +39,10 @@ jobs:
       - name: Restore + build (so XML doc files exist)
         run: dotnet build src/ModernLrc/ModernLrc.csproj -c Release --nologo
 
-      - name: Install DocFX
-        run: dotnet tool install -g docfx
-
       - name: Build docs
-        run: docfx docs/docfx.json
+        run: |
+          dotnet tool restore
+          dotnet docfx docs/docfx.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

@@ -33,15 +33,15 @@
       },
       {
         "src": "../assets",
-        "files": ["logo.svg"]
+        "files": ["logo-small.svg"]
       }
     ],
     "output": "_site",
     "globalMetadata": {
       "_appName": "ModernLrc",
       "_appTitle": "ModernLrc",
-      "_appLogoPath": "logo.svg",
-      "_appFaviconPath": "logo.svg",
+      "_appLogoPath": "logo-small.svg",
+      "_appFaviconPath": "logo-small.svg",
       "_appFooter": "Copyright © 2026 Anthony La. Free software under the <a href='https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE'>GNU GPL v3.0</a>.",
       "_enableSearch": true,
       "_disableContribution": false,

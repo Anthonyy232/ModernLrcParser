@@ -7,7 +7,7 @@ on:
       - 'src/**'
       - 'docs/**'
       - 'site/**'
-      - 'assets/logo.svg'
+      - 'assets/logo-small.svg'
       - '.github/workflows/docs.yml'
       - 'global.json'
       - 'Directory.Build.props'

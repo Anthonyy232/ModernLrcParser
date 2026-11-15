@@ -43,7 +43,7 @@ public sealed class RoundTripProperties
             }, iter: 1000);
     }
     [Fact]
-    public void BuilderMetadata_WriteParse_EqualsOriginal()
+    public void BuilderMetadata_WriteParse_EqualsOriginalAndWritesTheSame()
     {
         Gen.Select(LrcGen.SimpleText, LrcGen.SimpleText, Gen.Int[-5000, 5000], Gen.Int[0, 5999])
             .Sample((title, tool, offsetMs, lengthSeconds) =>
@@ -56,7 +56,9 @@ public sealed class RoundTripProperties
                     .WithLength(TimeSpan.FromSeconds(lengthSeconds))
                     .AddLine("00:01.00", "x")
                     .Build();
-                return LrcParser.Parse(LrcWriter.Write(doc)).Document == doc;
+                var parsed = LrcParser.Parse(LrcWriter.Write(doc)).Document;
+                var alphabetical = new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Alphabetical };
+                return parsed == doc && LrcWriter.Write(parsed, alphabetical) == LrcWriter.Write(doc, alphabetical);
             }, iter: 1000);
     }
 }

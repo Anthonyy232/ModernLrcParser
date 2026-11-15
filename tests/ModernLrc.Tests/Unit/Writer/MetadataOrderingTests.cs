@@ -24,18 +24,22 @@ public sealed class MetadataOrderingTests
     }
 
     [Fact]
-    public void Alphabetical_OrdersStronglyTypedKeysAToZ()
+    public void Alphabetical_SortsTypedAndRawTagsTogetherByKey()
     {
         var doc = new LrcDocumentBuilder()
-            .WithTitle("T").WithArtist("A").WithTool("X")
-            .AddLine("00:01.00", "x")
+            .WithTitle("T").WithRawTag("mm", "1").WithTool("X").WithArtist("A").WithRawTag("mm", "2")
             .Build();
-        var output = LrcWriter.Write(doc, new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Alphabetical });
-        var arIdx = output.IndexOf("[ar:", StringComparison.Ordinal);
-        var tiIdx = output.IndexOf("[ti:", StringComparison.Ordinal);
-        var reIdx = output.IndexOf("[re:", StringComparison.Ordinal);
-        arIdx.ShouldBeLessThan(tiIdx, "Artist should precede Title");
-        tiIdx.ShouldBeLessThan(reIdx, "Title should precede Tool (alphabetical by C# property name)");
+        var options = new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Alphabetical };
+        LrcWriter.Write(doc, options).ShouldBe("[ar:A]\n[mm:1]\n[mm:2]\n[re:X]\n[ti:T]\n");
+    }
+
+    [Fact]
+    public void Alphabetical_EditedTypedTag_IsSortedWithParsedOnes()
+    {
+        var parsed = LrcParser.Parse("[ve:1]\n[ar:Y]").Document;
+        var edited = parsed with { Metadata = parsed.Metadata with { Title = "X" } };
+        var options = new LrcWriteOptions { MetadataOrdering = LrcMetadataOrdering.Alphabetical };
+        LrcWriter.Write(edited, options).ShouldBe("[ar:Y]\n[ti:X]\n[ve:1]\n");
     }
 
     [Fact]

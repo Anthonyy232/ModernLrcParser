@@ -18,12 +18,6 @@ internal static class LrcMetadataFields
         ("length", F.Length), ("by", F.CreatedBy), ("offset", F.Offset), ("re", F.Tool), ("ve", F.Version),
     ];
 
-    private static readonly (string Key, F Field)[] AlphabeticalOrder =
-    [
-        ("al", F.Album), ("ar", F.Artist), ("au", F.Author), ("by", F.CreatedBy), ("length", F.Length),
-        ("lr", F.Lyricist), ("offset", F.Offset), ("ti", F.Title), ("re", F.Tool), ("ve", F.Version),
-    ];
-
     public static LrcMetadataField? FromKey(string key) => key switch
     {
         "ti" => LrcMetadataField.Title,
@@ -131,7 +125,8 @@ internal static class LrcMetadataFields
 
     /// <summary>The tags the writer emits, in order. Raw tags of a known key are kept verbatim
     /// (duplicates and source order included) only while they agree with the typed property;
-    /// otherwise they are stale, and the typed value is written first in their place.</summary>
+    /// otherwise they are stale, and the typed value is written first in their place.
+    /// Alphabetical ordering then sorts the whole sequence by key.</summary>
     public static ReadOnlySpan<LrcTag> WrittenTags(LrcMetadata m, LrcMetadataOrdering ordering)
     {
         Span<bool> rawAgrees = stackalloc bool[Count];
@@ -142,27 +137,30 @@ internal static class LrcMetadataFields
                 disagreeing++;
         }
 
-        bool alphabetical = ordering == LrcMetadataOrdering.Alphabetical;
-        if (disagreeing == 0 && !alphabetical) return m.RawTags.AsSpan();
-
-        var tags = new LrcTag[disagreeing + m.RawTags.Count];
-        int count = 0;
-        foreach (var (key, field) in alphabetical ? AlphabeticalOrder : CanonicalOrder)
+        var written = m.RawTags.AsSpan();
+        if (disagreeing > 0)
         {
-            // With no raw tags, "agreeing" means the typed value is unset.
-            if (!rawAgrees[(int)field] && Format(m, field) is { } value)
-                tags[count++] = new LrcTag(key, value);
+            var tags = new LrcTag[disagreeing + m.RawTags.Count];
+            int count = 0;
+            foreach (var (key, field) in CanonicalOrder)
+            {
+                // With no raw tags, "agreeing" means the typed value is unset.
+                if (!rawAgrees[(int)field] && Format(m, field) is { } value)
+                    tags[count++] = new LrcTag(key, value);
+            }
+
+            foreach (var tag in m.RawTags)
+            {
+                if (FromKey(tag.Key) is not { } field || rawAgrees[(int)field])
+                    tags[count++] = tag;
+            }
+
+            written = tags.AsSpan(0, count);
         }
 
-        IEnumerable<LrcTag> rawTags = m.RawTags;
-        if (alphabetical)
-            rawTags = rawTags.OrderBy(static t => t.Key, StringComparer.Ordinal);
-        foreach (var tag in rawTags)
-        {
-            if (FromKey(tag.Key) is not { } field || rawAgrees[(int)field])
-                tags[count++] = tag;
-        }
-
-        return tags.AsSpan(0, count);
+        // OrderBy is stable, so repeated keys keep their order.
+        return ordering == LrcMetadataOrdering.Alphabetical
+            ? written.ToArray().OrderBy(static t => t.Key, StringComparer.Ordinal).ToArray()
+            : written;
     }
 }

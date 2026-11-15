@@ -37,8 +37,7 @@ public enum LrcMetadataOrdering
     /// <c>RawTags</c> in array order.</summary>
     Canonical = 0,
 
-    /// <summary>Typed accessors with no matching raw tag A→Z by name, then
-    /// <c>RawTags</c> A→Z by key.</summary>
+    /// <summary>Every tag A→Z by key; tags with the same key keep their order.</summary>
     Alphabetical = 1,
 }
 

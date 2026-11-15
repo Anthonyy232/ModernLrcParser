@@ -54,5 +54,5 @@ LrcWriter.Write(edited);   // "[ti:New]\n[xx:custom]\n\n[00:01.00]hi\n"
 - **`Canonical`**: typed values not written from raw tags, in the order
   `ti, ar, al, au, lr, length, by, offset, re, ve`, then the raw tags in their
   original order.
-- **`Alphabetical`**: typed values not written from raw tags, A to Z by property
-  name (`Album`, `Artist`, `Author`, …), then the raw tags A to Z by key.
+- **`Alphabetical`**: every tag A to Z by key; tags with the same key keep their
+  order.

@@ -11,10 +11,6 @@
   <a href="https://anthonyy232.github.io/ModernLrcParser/api/ModernLrc.html"><b>API reference</b></a>
 </p>
 
-```sh
-dotnet add package ModernLrc
-```
-
 ModernLrc is a fast LRC (lyrics) parser and writer for .NET 10. It reads plain and Enhanced LRC, reports malformed input as diagnostics instead of throwing, looks up the line for a playback position, and writes documents back out. It is Native AOT compatible, trim-safe, and has no dependencies outside the BCL.
 
 The code in the panels below was compiled and run against the library; the output shown is what it printed.
@@ -100,17 +96,6 @@ string lrc = LrcWriter.Write(doc);
 ```
 
 [Getting started](https://anthonyy232.github.io/ModernLrcParser/articles/getting-started.html) walks through parsing, editing, writing and async use.
-
-## Features
-
-- **Full LRC syntax:** `[mm:ss.xx]text`, multi-timestamp `[t1][t2]…` lines, Enhanced LRC word timing `<…>`, and Walaoke voice markers (`M:` / `F:` / `D:`) carried forward to the lines that follow.
-- **Tolerant by default:** malformed input produces diagnostics with stable codes (`LRC0001`–`LRC0099`) and line/column positions instead of exceptions. `LrcStrictness.Strict` throws on the first error.
-- **Any input:** `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, bytes, `Stream` and file paths, sync and async.
-- **Encoding detection** for byte input: BOM, then UTF-8, then a fallback you choose (Latin-1 by default).
-- **Any output:** string, `TextWriter`, `Stream`, `IBufferWriter<char>` or `IBufferWriter<byte>`, fixed spans (`TryWrite`), and atomic file writes.
-- **Playback helpers:** `FindLineAt` and `LinesInRange` look up lines by playback position, applying `[offset:N]`.
-- **Round trips:** writing a parsed document and parsing it again gives an equal document.
-- **Native AOT compatible and trim-safe**, with no dependencies outside the BCL.
 
 ## Supported LRC
 

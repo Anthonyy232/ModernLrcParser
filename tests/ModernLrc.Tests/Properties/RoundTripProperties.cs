@@ -42,4 +42,21 @@ public sealed class RoundTripProperties
                 return true;
             }, iter: 1000);
     }
+    [Fact]
+    public void BuilderMetadata_WriteParse_EqualsOriginal()
+    {
+        Gen.Select(LrcGen.SimpleText, LrcGen.SimpleText, Gen.Int[-5000, 5000], Gen.Int[0, 5999])
+            .Sample((title, tool, offsetMs, lengthSeconds) =>
+            {
+                var doc = new LrcDocumentBuilder()
+                    .WithRawTag("xx", tool)
+                    .WithTool(tool)
+                    .WithTitle(title)
+                    .WithOffset(TimeSpan.FromMilliseconds(offsetMs))
+                    .WithLength(TimeSpan.FromSeconds(lengthSeconds))
+                    .AddLine("00:01.00", "x")
+                    .Build();
+                return LrcParser.Parse(LrcWriter.Write(doc)).Document == doc;
+            }, iter: 1000);
+    }
 }

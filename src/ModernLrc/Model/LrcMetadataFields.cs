@@ -1,4 +1,5 @@
 using System.Globalization;
+using F = ModernLrc.Model.LrcMetadataField;
 
 namespace ModernLrc.Model;
 
@@ -10,6 +11,18 @@ internal enum LrcMetadataField { Title, Artist, Album, Author, Lyricist, Length,
 internal static class LrcMetadataFields
 {
     public const int Count = 10;
+
+    private static readonly (string Key, F Field)[] CanonicalOrder =
+    [
+        ("ti", F.Title), ("ar", F.Artist), ("al", F.Album), ("au", F.Author), ("lr", F.Lyricist),
+        ("length", F.Length), ("by", F.CreatedBy), ("offset", F.Offset), ("re", F.Tool), ("ve", F.Version),
+    ];
+
+    private static readonly (string Key, F Field)[] AlphabeticalOrder =
+    [
+        ("al", F.Album), ("ar", F.Artist), ("au", F.Author), ("by", F.CreatedBy), ("length", F.Length),
+        ("lr", F.Lyricist), ("offset", F.Offset), ("ti", F.Title), ("re", F.Tool), ("ve", F.Version),
+    ];
 
     public static LrcMetadataField? FromKey(string key) => key switch
     {
@@ -114,5 +127,42 @@ internal static class LrcMetadataFields
                 implied = parsed;
         }
         return Equals(implied, Get(m, field));
+    }
+
+    /// <summary>The tags the writer emits, in order. Raw tags of a known key are kept verbatim
+    /// (duplicates and source order included) only while they agree with the typed property;
+    /// otherwise they are stale, and the typed value is written first in their place.</summary>
+    public static ReadOnlySpan<LrcTag> WrittenTags(LrcMetadata m, LrcMetadataOrdering ordering)
+    {
+        Span<bool> rawAgrees = stackalloc bool[Count];
+        int disagreeing = 0;
+        for (int i = 0; i < Count; i++)
+        {
+            if (!(rawAgrees[i] = RawTagsAgree(m, (F)i)))
+                disagreeing++;
+        }
+
+        bool alphabetical = ordering == LrcMetadataOrdering.Alphabetical;
+        if (disagreeing == 0 && !alphabetical) return m.RawTags.AsSpan();
+
+        var tags = new LrcTag[disagreeing + m.RawTags.Count];
+        int count = 0;
+        foreach (var (key, field) in alphabetical ? AlphabeticalOrder : CanonicalOrder)
+        {
+            // With no raw tags, "agreeing" means the typed value is unset.
+            if (!rawAgrees[(int)field] && Format(m, field) is { } value)
+                tags[count++] = new LrcTag(key, value);
+        }
+
+        IEnumerable<LrcTag> rawTags = m.RawTags;
+        if (alphabetical)
+            rawTags = rawTags.OrderBy(static t => t.Key, StringComparer.Ordinal);
+        foreach (var tag in rawTags)
+        {
+            if (FromKey(tag.Key) is not { } field || rawAgrees[(int)field])
+                tags[count++] = tag;
+        }
+
+        return tags.AsSpan(0, count);
     }
 }

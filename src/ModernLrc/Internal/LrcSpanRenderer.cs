@@ -1,6 +1,5 @@
 using System.Buffers;
 using ModernLrc.Model;
-using F = ModernLrc.Model.LrcMetadataField;
 
 namespace ModernLrc.Internal;
 
@@ -11,18 +10,6 @@ namespace ModernLrc.Internal;
 /// </summary>
 internal static class LrcSpanRenderer
 {
-    private static readonly (string Key, F Field)[] CanonicalOrder =
-    [
-        ("ti", F.Title), ("ar", F.Artist), ("al", F.Album), ("au", F.Author), ("lr", F.Lyricist),
-        ("length", F.Length), ("by", F.CreatedBy), ("offset", F.Offset), ("re", F.Tool), ("ve", F.Version),
-    ];
-
-    private static readonly (string Key, F Field)[] AlphabeticalOrder =
-    [
-        ("al", F.Album), ("ar", F.Artist), ("au", F.Author), ("by", F.CreatedBy), ("length", F.Length),
-        ("lr", F.Lyricist), ("offset", F.Offset), ("ti", F.Title), ("re", F.Tool), ("ve", F.Version),
-    ];
-
     public static void Render(LrcDocument document, IBufferWriter<char> writer, LrcWriteOptions options)
     {
         string lineEnding = ResolveLineEnding(options.LineEnding);
@@ -30,7 +17,14 @@ internal static class LrcSpanRenderer
 
         // Line endings go BETWEEN items; the trailing one is emitted once at the end,
         // conditional on TrailingNewline.
-        bool metaWritten = RenderMetadata(document.Metadata, ref w, options, lineEnding);
+        bool metaWritten = false;
+        foreach (var tag in LrcMetadataFields.WrittenTags(document.Metadata, options.MetadataOrdering))
+        {
+            if (metaWritten) w.Append(lineEnding);
+            w.Append('['); w.Append(tag.Key); w.Append(':'); w.Append(tag.Value); w.Append(']');
+            metaWritten = true;
+        }
+
         bool linesWritten = document.Lines.Count > 0;
 
         if (metaWritten && linesWritten)
@@ -47,45 +41,6 @@ internal static class LrcSpanRenderer
             w.Append(lineEnding);
 
         w.Commit();
-    }
-
-    private static bool RenderMetadata(LrcMetadata metadata, ref CharBufferWriter w,
-        LrcWriteOptions options, string lineEnding)
-    {
-        // Raw tags of a known key are emitted verbatim (preserving duplicates and source order)
-        // only while re-parsing them still yields the typed property. Once the typed property
-        // has been edited, its raw tags are stale: they are dropped and the typed value wins.
-        Span<bool> rawAgrees = stackalloc bool[LrcMetadataFields.Count];
-        foreach (var (_, field) in CanonicalOrder)
-            rawAgrees[(int)field] = LrcMetadataFields.RawTagsAgree(metadata, field);
-
-        bool any = false;
-        var order = options.MetadataOrdering == LrcMetadataOrdering.Canonical ? CanonicalOrder : AlphabeticalOrder;
-        foreach (var (key, field) in order)
-        {
-            // With no raw tags, "agreeing" means the typed value is unset, so nothing is emitted.
-            if (!rawAgrees[(int)field])
-                AppendTag(ref w, key, LrcMetadataFields.Format(metadata, field), lineEnding, ref any);
-        }
-
-        IEnumerable<LrcTag> rawTags = metadata.RawTags;
-        if (options.MetadataOrdering == LrcMetadataOrdering.Alphabetical)
-            rawTags = rawTags.OrderBy(static t => t.Key, StringComparer.Ordinal);
-        foreach (var tag in rawTags)
-        {
-            if (LrcMetadataFields.FromKey(tag.Key) is { } field && !rawAgrees[(int)field]) continue;
-            AppendTag(ref w, tag.Key, tag.Value, lineEnding, ref any);
-        }
-
-        return any;
-    }
-
-    private static void AppendTag(ref CharBufferWriter w, string key, string? value, string lineEnding, ref bool any)
-    {
-        if (value is null) return;
-        if (any) w.Append(lineEnding);
-        w.Append('['); w.Append(key); w.Append(':'); w.Append(value); w.Append(']');
-        any = true;
     }
 
     private static void RenderLyrics(LrcDocument document, ref CharBufferWriter w,

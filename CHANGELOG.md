@@ -6,6 +6,12 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A document built with `LrcDocumentBuilder`, or edited with `with`, is now equal to the
+  result of writing and parsing it. `LrcMetadata` equality compares the typed properties
+  and the tags that would be written, so raw tags made stale by an edit no longer count.
+
 ### Changed
 
 - ModernLrc is now licensed under GPL-3.0-only. Versions up to 2.0.2 remain under the MIT

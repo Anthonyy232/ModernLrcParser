@@ -14,7 +14,9 @@ namespace ModernLrc.Model;
 /// <para>The typed properties are authoritative when writing. Raw tags of a known key are
 /// written verbatim only while they still agree with the typed property; after an edit such as
 /// <c>metadata with { Title = "New" }</c>, the stale raw <c>ti</c> tags are dropped and the
-/// new value is written.</para></remarks>
+/// new value is written.</para>
+/// <para>Equality follows the same rule: two instances are equal when their typed properties
+/// match and they would be written with the same tags, so stale raw tags don't count.</para></remarks>
 public sealed record LrcMetadata
 {
     /// <summary>Singleton empty metadata.</summary>
@@ -54,6 +56,26 @@ public sealed record LrcMetadata
     /// <summary>Document timing offset (<c>offset:±N</c> milliseconds). Positive shows lyrics
     /// sooner, negative later. Zero by default.</summary>
     public TimeSpan Offset { get; init; }
+
+    /// <summary>Equal when the typed properties match and both would be written with the same tags.</summary>
+    public bool Equals(LrcMetadata? other)
+        => other is not null
+        && Title == other.Title && Artist == other.Artist && Album == other.Album
+        && Author == other.Author && Lyricist == other.Lyricist && CreatedBy == other.CreatedBy
+        && Tool == other.Tool && Version == other.Version
+        && Length == other.Length && Offset == other.Offset
+        && LrcMetadataFields.WrittenTags(this, LrcMetadataOrdering.Canonical)
+            .SequenceEqual(LrcMetadataFields.WrittenTags(other, LrcMetadataOrdering.Canonical));
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        // Raw tags are left out: stale ones must not change the hash.
+        var hash = new HashCode();
+        hash.Add(Title); hash.Add(Artist); hash.Add(Album); hash.Add(Author); hash.Add(Lyricist);
+        hash.Add(CreatedBy); hash.Add(Tool); hash.Add(Version); hash.Add(Length); hash.Add(Offset);
+        return hash.ToHashCode();
+    }
 }
 
 /// <summary>An ID tag in source order. <see cref="Key"/> is normalized to lowercase

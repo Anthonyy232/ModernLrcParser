@@ -136,10 +136,10 @@ started.
 
 ## Round trips
 
-Writing a parsed document and parsing the output gives an equal document, apart from
-millisecond timestamps (see below). Voice markers, multi-timestamp lines, word timing,
-metadata (including duplicate and unknown tags) and the original `[offset:N]` tag are
-kept.
+Writing a document and parsing the output gives an equal document, whether it was
+parsed, built with `LrcDocumentBuilder` or edited with `with`, apart from the cases
+listed below. Voice markers, multi-timestamp lines, word timing, metadata (including
+duplicate and unknown tags) and the original `[offset:N]` tag are kept.
 
 ```csharp
 var doc1 = LrcParser.Parse(source).Document;
@@ -153,6 +153,11 @@ and untimed text is dropped. Beyond that:
 - Timestamps are written as `mm:ss.xx` by default, so `[00:01.505]` comes back as
   `[00:01.50]`. Set `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to keep
   milliseconds.
+- Two documents are equal when their lines and typed metadata match and they would be
+  written with the same tags. `Metadata.RawTags` itself can differ: a parsed document
+  lists every tag it read, a built one only those passed to `WithRawTag`, and raw
+  tags left stale by an edit to a typed property are ignored.
+- `Length` is written as `mm:ss`, so fractions of a second are lost.
 - In documents you build or edit, lyric text that looks like LRC syntax (such as
   `<00:01.00>` or a leading `F: `) is read as syntax when parsed again.
 - A line can't go back to the default voice after an `M:`/`F:`/`D:` line; see

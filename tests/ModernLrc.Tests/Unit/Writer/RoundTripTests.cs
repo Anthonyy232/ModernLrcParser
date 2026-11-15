@@ -147,4 +147,25 @@ public sealed class RoundTripTests
         doc.Metadata.Length.ShouldBe(TimeSpan.FromSeconds(200));
         LrcWriter.Write(doc).ShouldBe("[ti:Raw]\n[length:03:20]\n\n[00:01.00]x\n");
     }
+
+    [Fact]
+    public void Metadata_SeededBuilderEdit_WriteParseEqualsOriginal()
+    {
+        var parsed = LrcParser.Parse("[xx:keep]\n[ti:A]\n[ti:B]\n[00:01.00]x").Document;
+        var edited = new LrcDocumentBuilder(parsed).WithTitle("C").Build();
+
+        LrcParser.Parse(LrcWriter.Write(edited)).Document.ShouldBe(edited);
+    }
+
+    [Fact]
+    public void Metadata_WithExpressionEdit_WriteParseEqualsOriginal()
+    {
+        var parsed = LrcParser.Parse("[ti:A]\n[offset:+100]\n[xx:keep]\n[00:01.00]x").Document;
+        var edited = parsed with { Metadata = parsed.Metadata with { Title = "B", Offset = TimeSpan.Zero } };
+
+        var reparsed = LrcParser.Parse(LrcWriter.Write(edited)).Document;
+
+        reparsed.ShouldBe(edited);
+        reparsed.GetHashCode().ShouldBe(edited.GetHashCode());
+    }
 }

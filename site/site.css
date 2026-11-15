@@ -39,10 +39,9 @@ nav a:hover { color: var(--ink); }
 h1 { font-size: clamp(56px, 11vw, 116px); line-height: 0.98; }
 .lede { max-width: 600px; margin: 22px auto 0; font-size: clamp(17px, 2.2vw, 20px); line-height: 1.45; color: var(--muted); text-wrap: balance; }
 .install { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; margin-top: 30px; padding: 6px 6px 6px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
-.install code { font: 15px var(--mono); overflow-x: auto; white-space: nowrap; }
-.install button { padding: 8px 14px; border: 0; border-radius: 8px; background: var(--ink); color: var(--bg); font: inherit; font-size: 14px; cursor: pointer; }
-#copied { position: absolute; margin: 0 0 0 calc(100% + 12px); font-size: 14px; color: var(--muted); }
-.install { position: relative; }
+.install code { min-width: 0; font: clamp(13px, 3.6vw, 15px) var(--mono); text-align: left; }
+.install button { flex: none; min-width: 5.2em; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--ink); color: var(--bg); font: inherit; font-size: 14px; cursor: pointer; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .links { display: flex; justify-content: center; gap: 24px; margin-top: 18px; font-size: 16px; }
 
 .stage { background: var(--wash); border-radius: 20px; padding: clamp(16px, 4vw, 36px); text-align: left; min-width: 0; }
@@ -80,5 +79,4 @@ footer p:last-child { display: flex; flex-wrap: wrap; gap: 8px 22px; }
 
 @media (max-width: 860px) {
   .hero .stage, .feature { grid-template-columns: minmax(0, 1fr); }
-  #copied { position: static; margin: 0; }
 }

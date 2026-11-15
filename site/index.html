@@ -32,8 +32,8 @@
       <p class="lede">A fast LRC lyrics parser and writer for .NET, with word timing, duet voices and diagnostics instead of exceptions.</p>
       <div class="install">
         <code id="install">dotnet add package ModernLrc</code>
-        <button type="button" id="copy" aria-describedby="copied">Copy</button>
-        <span id="copied" role="status"></span>
+        <button type="button" id="copy">Copy</button>
+        <span id="copied" class="sr" role="status"></span>
       </div>
       <p class="links"><a href="articles/getting-started.html">Get started</a><a href="api/ModernLrc.html">API reference</a></p>
       <div class="stage">
@@ -185,9 +185,20 @@
   </footer>
 
   <script>
-    document.getElementById('copy').addEventListener('click', async () => {
-      await navigator.clipboard.writeText(document.getElementById('install').textContent);
-      document.getElementById('copied').textContent = 'Copied';
+    const copy = document.getElementById('copy');
+    const command = document.getElementById('install');
+    const copied = document.getElementById('copied');
+    copy.addEventListener('click', async () => {
+      let label = 'Copied';
+      try {
+        await navigator.clipboard.writeText(command.textContent);
+      } catch {
+        // No clipboard access (permission, insecure context): leave the command selected instead.
+        getSelection().selectAllChildren(command);
+        label = 'Not copied';
+      }
+      copy.textContent = copied.textContent = label;
+      setTimeout(() => { copy.textContent = 'Copy'; copied.textContent = ''; }, 2000);
     });
   </script>
 </body>

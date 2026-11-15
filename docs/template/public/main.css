@@ -23,9 +23,10 @@
 }
 
 body { font-family: system-ui, sans-serif; }
-article h1, article h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
-article h1 { font-size: 3.2rem; line-height: 1.05; }
-article h2 { font-size: 2.2rem; }
+article h1, article h2, article h3 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+article h1 { margin-bottom: 1.5rem; font-size: 3.2rem; line-height: 1.05; }
+article h2 { margin-top: 2.75rem; font-size: 2.2rem; }
+article h3 { margin-top: 2rem; font-size: 1.6rem; }
 .navbar-brand { font-weight: 700; letter-spacing: -0.02em; }
 #logo { width: 28px; height: 28px; margin-right: 6px; }
 pre, code { font-family: 'Cascadia Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-ligatures: none; }

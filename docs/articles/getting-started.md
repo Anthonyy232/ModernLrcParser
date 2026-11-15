@@ -6,7 +6,7 @@
 dotnet add package ModernLrc
 ```
 
-Requires a project targeting .NET 10 (`net10.0`).
+Requires a project targeting .NET 10 or later. The package has builds for `net10.0` and `net11.0`.
 
 ## Parse
 

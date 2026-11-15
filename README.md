@@ -11,7 +11,7 @@
   <a href="https://anthonyy232.github.io/ModernLrcParser/api/ModernLrc.html"><b>API reference</b></a>
 </p>
 
-ModernLrc is a fast LRC (lyrics) parser and writer for .NET 10. It reads plain and Enhanced LRC, reports malformed input as diagnostics instead of throwing, looks up the line for a playback position, and writes documents back out. It is Native AOT compatible, trim-safe, and has no dependencies outside the BCL.
+ModernLrc is a fast LRC (lyrics) parser and writer for .NET 10 and .NET 11. It reads plain and Enhanced LRC, reports malformed input as diagnostics instead of throwing, looks up the line for a playback position, and writes documents back out. It is Native AOT compatible, trim-safe, and has no dependencies outside the BCL.
 
 The code in the panels below was compiled and run against the library; the output shown is what it printed.
 
@@ -74,7 +74,7 @@ Writing a document with the default options and parsing it again gives an equal 
 dotnet add package ModernLrc
 ```
 
-Requires a project targeting .NET 10 (`net10.0`).
+Requires a project targeting .NET 10 or later. The package has builds for `net10.0` and `net11.0`.
 
 ## Quick start
 

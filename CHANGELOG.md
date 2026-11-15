@@ -6,6 +6,11 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- A `net11.0` build alongside `net10.0`, so .NET 11 projects get a build compiled for
+  their runtime.
+
 ### Changed (breaking)
 
 - ModernLrc is now licensed under GPL-3.0-only. Versions up to 2.0.2 remain under the MIT

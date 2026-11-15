@@ -14,7 +14,7 @@
     <Version>2.0.2</Version>
     <Authors>Anthony La</Authors>
     <Copyright>Copyright © 2026 Anthony La</Copyright>
-    <Description>A fast LRC lyrics parser and writer for .NET 10, with word timing, duet voices and diagnostics instead of exceptions.</Description>
+    <Description>A fast LRC lyrics parser and writer for .NET 10 and .NET 11, with word timing, duet voices and diagnostics instead of exceptions.</Description>
     <PackageTags>lrc;lyrics;parser;writer;aot;trimming;dotnet</PackageTags>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

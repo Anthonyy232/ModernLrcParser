@@ -1,6 +1,6 @@
 # ModernLrc
 
-A fast LRC (lyrics) parser and writer for .NET 10. Native AOT compatible, trim-safe, and no dependencies outside the BCL.
+A fast LRC (lyrics) parser and writer for .NET 10 and .NET 11. Native AOT compatible, trim-safe, and no dependencies outside the BCL.
 
 - Basic LRC, multi-timestamp lines, Enhanced LRC word timing and Walaoke voice markers (`M:` / `F:` / `D:`).
 - Malformed input produces diagnostics with stable codes and line/column positions instead of exceptions.

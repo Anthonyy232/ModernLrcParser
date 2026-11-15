@@ -6,6 +6,11 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-11-15
+
+A major version because of the licence change and the behaviour changes below. No public
+members were added or removed.
+
 ### Changed (breaking)
 
 - ModernLrc is now licensed under GPL-3.0-only. Versions up to 2.0.2 remain under the MIT
@@ -144,7 +149,8 @@ Initial public release. Modern, AOT-compatible LRC (lyrics) parser/writer for
 Walaoke voice markers), tolerant-by-default with a stable diagnostic catalogue,
 sync + async overloads for every input shape, and zero-allocation writer paths.
 
-[Unreleased]: https://github.com/Anthonyy232/ModernLrcParser/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/Anthonyy232/ModernLrcParser/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v3.0.0
 [2.0.2]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.2
 [2.0.1]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.1
 [2.0.0]: https://github.com/Anthonyy232/ModernLrcParser/releases/tag/v2.0.0

@@ -1,0 +1,33 @@
+/* Brings the DocFX modern template in line with site/site.css. */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+:root, [data-bs-theme='light'] {
+  --bs-body-bg: #f5f3ee; --bs-body-bg-rgb: 245, 243, 238;
+  --bs-body-color: #1c1b18; --bs-body-color-rgb: 28, 27, 24;
+  --bs-secondary-color: #615d55; --bs-secondary-bg: #ebe8e0; --bs-tertiary-bg: #fffefb;
+  --bs-border-color: #1c1b1822; --bs-border-color-translucent: #1c1b1822;
+  --bs-link-color: #c2410c; --bs-link-color-rgb: 194, 65, 12;
+  --bs-link-hover-color: #9a330a; --bs-link-hover-color-rgb: 154, 51, 10;
+  --bs-code-color: #1c1b18; --bs-emphasis-color: #1c1b18;
+  --bs-primary: #c2410c; --bs-primary-rgb: 194, 65, 12;
+}
+[data-bs-theme='dark'] {
+  --bs-body-bg: #171614; --bs-body-bg-rgb: 23, 22, 20;
+  --bs-body-color: #edeae3; --bs-body-color-rgb: 237, 234, 227;
+  --bs-secondary-color: #a09b90; --bs-secondary-bg: #2a2724; --bs-tertiary-bg: #211f1c;
+  --bs-border-color: #edeae326; --bs-border-color-translucent: #edeae326;
+  --bs-link-color: #ff8a5c; --bs-link-color-rgb: 255, 138, 92;
+  --bs-link-hover-color: #ffa884; --bs-link-hover-color-rgb: 255, 168, 132;
+  --bs-code-color: #edeae3; --bs-emphasis-color: #edeae3;
+  --bs-primary: #ff8a5c; --bs-primary-rgb: 255, 138, 92;
+}
+
+body { font-family: system-ui, sans-serif; }
+article h1, article h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+article h1 { font-size: 3.2rem; line-height: 1.05; }
+article h2 { font-size: 2.2rem; }
+.navbar-brand { font-weight: 700; letter-spacing: -0.02em; }
+#logo { width: 28px; height: 28px; margin-right: 6px; }
+pre, code { font-family: 'Cascadia Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-ligatures: none; }
+article pre { border: 1px solid var(--bs-border-color); border-radius: 12px; background: var(--bs-tertiary-bg); }
+article :not(pre) > code { padding: 0.1em 0.35em; border-radius: 5px; background: var(--bs-secondary-bg); }

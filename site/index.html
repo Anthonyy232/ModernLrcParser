@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ModernLrc: an LRC lyrics parser and writer for .NET</title>
+  <meta name="description" content="A fast LRC lyrics parser and writer for .NET 10, with word timing, duet voices and diagnostics instead of exceptions. Native AOT compatible and trim-safe.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="ModernLrc">
+  <meta property="og:description" content="A fast LRC lyrics parser and writer for .NET, with word timing, duet voices and diagnostics instead of exceptions.">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;display=swap">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <a class="brand" href="./"><img src="logo.svg" alt="" width="28" height="28">ModernLrc</a>
+    <nav aria-label="Site">
+      <a href="articles/getting-started.html">Docs</a>
+      <a href="api/ModernLrc.html">API</a>
+      <a href="https://www.nuget.org/packages/ModernLrc">NuGet</a>
+      <a href="https://github.com/Anthonyy232/ModernLrcParser">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <h1>every lyric,<br><i>on time</i></h1>
+      <p class="lede">A fast LRC lyrics parser and writer for .NET, with word timing, duet voices and diagnostics instead of exceptions.</p>
+      <div class="install">
+        <code id="install">dotnet add package ModernLrc</code>
+        <button type="button" id="copy" aria-describedby="copied">Copy</button>
+        <span id="copied" role="status"></span>
+      </div>
+      <p class="links"><a href="articles/getting-started.html">Get started</a><a href="api/ModernLrc.html">API reference</a></p>
+      <div class="stage">
+        <figure class="win file"><figcaption>song.lrc</figcaption><pre tabindex="0"><code><span class="tag">[ti:Paper Lanterns]</span>
+<span class="tag">[ar:The Tide Pools]</span>
+<span class="tag">[00:30.00]</span><span class="k">M:</span> I kept the porch light on
+<span class="tag">[00:34.20]</span>All through the winter
+<span class="tag">[00:38.50]</span><span class="k">F:</span> I saw it from the road
+<span class="tag">[00:42.90]</span><span class="k">D:</span> <span class="tag">&lt;00:42.90></span>So <span class="tag">&lt;00:43.40></span>carry <span class="tag">&lt;00:44.10></span>me <span class="tag">&lt;00:44.60></span>home</code></pre></figure>
+        <div class="prog">
+          <figure class="win "><figcaption>Program.cs</figcaption><pre tabindex="0"><code><span class="k">var</span> doc = <span class="t">LrcParser</span>.ParseFile(<span class="s">"song.lrc"</span>).Document;
+
+<span class="k">var</span> line = doc.FindLineAt(<span class="t">TimeSpan</span>.FromSeconds(40));
+<span class="t">Console</span>.WriteLine(<span class="s">$"{line?.EffectiveVoice}: {line?.GetText()}"</span>);</code></pre></figure>
+          <figure class="win out"><figcaption>output</figcaption><pre tabindex="0"><code>Female: I saw it from the road</code></pre></figure>
+        </div>
+      </div>
+    </section>
+
+    <p class="intro">ModernLrc reads plain and Enhanced LRC, looks up the line for a playback position, and writes documents back out. It targets .NET 10, is Native AOT compatible and trim-safe, and has no dependencies outside the BCL. The code below was compiled and run against the library; the output is what it printed.</p>
+
+    <section class="feature">
+      <div class="copy">
+        <p class="num">01</p>
+        <h2>Text in, <i>typed</i> lines out</h2>
+        <p>Metadata, timestamps and text come back as immutable records. A line with several timestamps becomes one line for each, sorted by time. Malformed input is reported as diagnostics with a code, line and column, and parsing carries on.</p>
+        <p><a href="articles/diagnostics-reference.html">Diagnostics reference</a></p>
+      </div>
+      <div class="stage">
+        <figure class="win "><figcaption>Program.cs</figcaption><pre tabindex="0"><code><span class="k">var</span> result = <span class="t">LrcParser</span>.Parse(<span class="s">"""
+    [ti:Paper Lanterns]
+    [ar:The Tide Pools]
+    [00:12.00]Paper lanterns on the water
+    [00:17.40]Drifting where the river bends
+    [00:23.10][01:04.60]Carry me home
+    """</span>);
+
+<span class="k">var</span> doc = result.Document;
+<span class="t">Console</span>.WriteLine(<span class="s">$"{doc.Metadata.Title} by {doc.Metadata.Artist}"</span>);
+<span class="k">foreach</span> (<span class="k">var</span> line <span class="k">in</span> doc.Lines)
+    <span class="t">Console</span>.WriteLine(<span class="s">$"{line.Timestamp}  {line.GetText()}"</span>);</code></pre></figure>
+        <figure class="win out"><figcaption>output</figcaption><pre tabindex="0"><code>Paper Lanterns by The Tide Pools
+00:12.00  Paper lanterns on the water
+00:17.40  Drifting where the river bends
+00:23.10  Carry me home
+01:04.60  Carry me home</code></pre></figure>
+      </div>
+    </section>
+
+    <section class="feature">
+      <div class="copy">
+        <p class="num">02</p>
+        <h2>Karaoke, <i>word</i> by word</h2>
+        <p>Enhanced LRC gives every word its own timestamp. Find the line at the playback position, then light up the words as they are sung.</p>
+        <p><a href="articles/playback.html">Playback</a></p>
+      </div>
+      <div class="stage">
+        <figure class="win "><figcaption>Program.cs</figcaption><pre tabindex="0"><code><span class="k">var</span> doc = <span class="t">LrcParser</span>.Parse(<span class="s">"""
+    [00:23.10]&lt;00:23.10>Carry &lt;00:23.80>me &lt;00:24.30>home
+    """</span>).Document;
+
+<span class="k">var</span> now = <span class="t">TimeSpan</span>.FromSeconds(24);
+<span class="k">if</span> (doc.FindLineAt(now) <span class="k">is</span> <span class="t">LrcEnhancedLine</span> line)
+    <span class="k">foreach</span> (<span class="k">var</span> word <span class="k">in</span> line.Words)
+    {
+        <span class="k">var</span> at = doc.GetEffectiveTime(word.Timestamp);
+        <span class="k">string</span> state = at &lt;= now ? <span class="s">"sung"</span> : <span class="s">""</span>;
+        <span class="t">Console</span>.WriteLine(<span class="s">$"{word.Timestamp}  {word.Text,-6} {state}"</span>);
+    }</code></pre></figure>
+        <figure class="win out"><figcaption>output</figcaption><pre tabindex="0"><code>00:23.10  Carry  <mark>sung</mark>
+00:23.80  me     <mark>sung</mark>
+00:24.30  home   </code></pre></figure>
+      </div>
+    </section>
+
+    <section class="feature">
+      <div class="copy">
+        <p class="num">03</p>
+        <h2>Duets keep <i>their</i> voices</h2>
+        <p>Male, female and duet markers carry forward to the lines that follow, so every line already knows who sings it.</p>
+        <p><a href="articles/playback.html#voice">Voices</a></p>
+      </div>
+      <div class="stage">
+        <figure class="win "><figcaption>Program.cs</figcaption><pre tabindex="0"><code><span class="k">var</span> doc = <span class="t">LrcParser</span>.Parse(<span class="s">"""
+    [00:30.00]M: I kept the porch light on
+    [00:34.20]All through the winter
+    [00:38.50]F: I saw it from the road
+    [00:42.90]D: So carry me home
+    """</span>).Document;
+
+<span class="k">foreach</span> (<span class="k">var</span> line <span class="k">in</span> doc.Lines)
+    <span class="t">Console</span>.WriteLine(<span class="s">$"{line.EffectiveVoice,-7} {line.GetText()}"</span>);</code></pre></figure>
+        <figure class="win out"><figcaption>output</figcaption><pre tabindex="0"><code><mark>Male</mark>    I kept the porch light on
+<mark>Male</mark>    All through the winter
+<mark>Female</mark>  I saw it from the road
+<mark>Duet</mark>    So carry me home</code></pre></figure>
+      </div>
+    </section>
+
+    <section class="feature">
+      <div class="copy">
+        <p class="num">04</p>
+        <h2>Out as <i>it came in</i></h2>
+        <p>Edit a parsed document and write it back. Offsets, grouped timestamps, voices and word timing survive, and parsing the result gives an equal document.</p>
+        <p><a href="articles/getting-started.html#round-trips">Round trips</a></p>
+      </div>
+      <div class="stage">
+        <figure class="win "><figcaption>Program.cs</figcaption><pre tabindex="0"><code><span class="k">var</span> doc = <span class="t">LrcParser</span>.Parse(<span class="s">"""
+    [ti:Paper Lanterns]
+    [offset:250]
+    [00:12.00]Paper lanterns on the water
+    [00:23.10][01:04.60]F: Carry me home
+    [01:10.00]&lt;01:10.00>Carry &lt;01:10.70>me &lt;01:11.20>home
+    """</span>).Document;
+
+<span class="k">var</span> shifted = <span class="k">new</span> <span class="t">LrcDocumentBuilder</span>(doc)
+    .ShiftAll(<span class="t">TimeSpan</span>.FromSeconds(1.5))
+    .Build();
+
+<span class="k">string</span> lrc = <span class="t">LrcWriter</span>.Write(shifted);
+<span class="t">Console</span>.Write(lrc);
+<span class="t">Console</span>.WriteLine(<span class="t">LrcParser</span>.Parse(lrc).Document == shifted);</code></pre></figure>
+        <figure class="win out"><figcaption>output</figcaption><pre tabindex="0"><code>[ti:Paper Lanterns]
+[offset:250]
+
+[00:13.50]Paper lanterns on the water
+[00:24.60][01:06.10]F: Carry me home
+[01:11.50]&lt;01:11.50>Carry &lt;01:12.20>me &lt;01:12.70>home
+<mark>True</mark></code></pre></figure>
+      </div>
+    </section>
+
+    <section class="more">
+      <h2>Read <i>on</i></h2>
+      <ul>
+        <li><a href="articles/getting-started.html">Getting started</a><span>Parse, edit and write your first file</span></li>
+        <li><a href="articles/playback.html">Playback</a><span>Show lyrics in time with the music</span></li>
+        <li><a href="articles/diagnostics-reference.html">Diagnostics reference</a><span>Look up a code, or use strict mode</span></li>
+        <li><a href="articles/encoding-pipeline.html">Encoding pipeline</a><span>Read files that aren't UTF-8</span></li>
+        <li><a href="articles/options.html">Options reference</a><span>Change parse or write settings</span></li>
+        <li><a href="api/ModernLrc.html">API reference</a><span>Every public type and member</span></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Copyright © 2026 Anthony La. Free software under the <a href="https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE">GNU GPL v3.0</a>.</p>
+    <p><a href="https://github.com/Anthonyy232/ModernLrcParser">Source</a><a href="https://github.com/Anthonyy232/ModernLrcParser/releases">Releases</a><a href="https://www.nuget.org/packages/ModernLrc">NuGet</a><a href="https://github.com/Anthonyy232/Nagi">Used by Nagi</a></p>
+  </footer>
+
+  <script>
+    document.getElementById('copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('install').textContent);
+      document.getElementById('copied').textContent = 'Copied';
+    });
+  </script>
+</body>
+</html>

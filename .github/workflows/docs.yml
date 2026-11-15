@@ -6,6 +6,8 @@ on:
     paths:
       - 'src/**'
       - 'docs/**'
+      - 'site/**'
+      - 'assets/logo.svg'
       - '.github/workflows/docs.yml'
       - 'global.json'
       - 'Directory.Build.props'

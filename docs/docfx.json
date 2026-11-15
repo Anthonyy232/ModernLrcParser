@@ -20,27 +20,29 @@
   "build": {
     "content": [
       {
-        "files": ["api/**.yml", "api/index.md"]
+        "files": ["api/**.yml"]
       },
       {
-        "files": [
-          "articles/**.md",
-          "articles/**/toc.yml",
-          "toc.yml",
-          "*.md"
-        ]
+        "files": ["articles/**.md", "articles/**/toc.yml", "toc.yml"]
       }
     ],
     "resource": [
       {
-        "files": ["images/**"]
+        "src": "../site",
+        "files": ["**"]
+      },
+      {
+        "src": "../assets",
+        "files": ["logo.svg"]
       }
     ],
     "output": "_site",
     "globalMetadata": {
       "_appName": "ModernLrc",
       "_appTitle": "ModernLrc",
-      "_appFooter": "© ModernLrc contributors. Built with <a href='https://dotnet.github.io/docfx'>DocFX</a>.",
+      "_appLogoPath": "logo.svg",
+      "_appFaviconPath": "logo.svg",
+      "_appFooter": "Copyright © 2026 Anthony La. Free software under the <a href='https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE'>GNU GPL v3.0</a>.",
       "_enableSearch": true,
       "_disableContribution": false,
       "_gitContribute": {
@@ -48,7 +50,7 @@
         "branch": "main"
       }
     },
-    "template": ["default", "modern"],
+    "template": ["default", "modern", "template"],
     "postProcessors": ["ExtractSearchIndex"],
     "keepFileLink": false,
     "disableGitFeatures": false

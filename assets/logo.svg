@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>ModernLrc</title>
+  <rect width="256" height="256" rx="56" fill="#E5532D"/>
+  <g fill="#fff" transform="translate(128 128) scale(.7) translate(-128 -128)">
+    <path d="M48 36H100V70H74V186H100V220H48A12 12 0 0 1 36 208V48A12 12 0 0 1 48 36Z M208 36H156V70H182V186H156V220H208A12 12 0 0 0 220 208V48A12 12 0 0 0 208 36Z"/>
+    <circle cx="128" cy="97" r="21"/>
+    <circle cx="128" cy="159" r="21"/>
+  </g>
+</svg>

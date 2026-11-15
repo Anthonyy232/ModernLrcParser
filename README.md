@@ -1,18 +1,76 @@
-# ModernLrc
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/hero-dark.png">
+  <img src=".github/readme/hero-light.png" alt="ModernLrc: every lyric, on time. A song.lrc file with voice markers and word timing, and three lines of C# that find the line playing at 40 seconds.">
+</picture>
 
-A fast LRC (lyrics) parser and writer for .NET 10. Native AOT compatible, trim-safe, and no dependencies outside the BCL.
+<p align="center">
+  <a href="https://www.nuget.org/packages/ModernLrc"><b>Get ModernLrc on NuGet</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://anthonyy232.github.io/ModernLrcParser/"><b>Documentation</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://anthonyy232.github.io/ModernLrcParser/api/ModernLrc.html"><b>API reference</b></a>
+</p>
 
-Documentation and API reference: <https://anthonyy232.github.io/ModernLrcParser>
+```sh
+dotnet add package ModernLrc
+```
 
-## Features
+ModernLrc is a fast LRC (lyrics) parser and writer for .NET 10. It reads plain and Enhanced LRC, reports malformed input as diagnostics instead of throwing, looks up the line for a playback position, and writes documents back out. It is Native AOT compatible, trim-safe, and has no dependencies outside the BCL.
 
-- **Full LRC syntax:** `[mm:ss.xx]text`, multi-timestamp `[t1][t2]…` lines, Enhanced LRC word timing `<…>`, and Walaoke voice markers (`M:` / `F:` / `D:`) carried forward to the lines that follow.
-- **Tolerant by default:** malformed input produces diagnostics with stable codes (`LRC0001`–`LRC0099`) and line/column positions instead of exceptions. `LrcStrictness.Strict` throws on the first error.
-- **Any input:** `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, bytes, `Stream` and file paths, sync and async.
-- **Encoding detection** for byte input: BOM, then UTF-8, then a fallback you choose (Latin-1 by default).
-- **Any output:** string, `TextWriter`, `Stream`, `IBufferWriter<char>` or `IBufferWriter<byte>`, fixed spans (`TryWrite`), and atomic file writes.
-- **Playback helpers:** `FindLineAt` and `LinesInRange` look up lines by playback position, applying `[offset:N]`.
-- **Round trips:** writing a parsed document and parsing it again gives an equal document, keeping the original `[offset:N]` tag. Timestamps are written as `mm:ss.xx` by default, so millisecond timestamps need millisecond precision to survive. `LrcWriter.ValidateForWrite` reports anything that can't be written back.
+The code in the panels below was compiled and run against the library; the output shown is what it printed.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/feature-parse-dark.png">
+  <img src=".github/readme/feature-parse-light.png" alt="01. Text in, typed lines out. LrcParser.Parse on five lines of LRC prints the title and artist, then four timed lines: the line with two timestamps appears twice.">
+</picture>
+
+`LrcParser.Parse` returns the document and the diagnostics reported while parsing. It takes a `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, bytes, a `Stream` or a file path, sync and async. Byte input is decoded by BOM, then as UTF-8, then with a fallback you choose (Latin-1 by default).
+
+Malformed input doesn't throw. Each problem gets a stable code (`LRC0001`–`LRC0099`), a severity and a line and column, and parsing carries on:
+
+```csharp
+var result = LrcParser.Parse("""
+    [00:12]Paper lanterns on the water
+    [0x:17.40]Drifting where the river bends
+    [00:23.10]Carry me home
+    """);
+
+Console.WriteLine($"{result.Document.Lines.Count} lines, errors: {result.HasErrors}");
+foreach (var d in result.Diagnostics)
+    Console.WriteLine($"{d.Code} {d.Severity} L{d.Line}:C{d.Column} {d.Message}");
+```
+
+```text
+2 lines, errors: True
+LRC0030 Info L1:C1 Non-standard timestamp variant '[00:12]' accepted.
+LRC0002 Error L2:C1 '[0x:17.40]' is not a valid timestamp.
+LRC0050 Info L2:C11 Free text without timestamp dropped.
+```
+
+`LrcStrictness.Strict` throws on the first error instead. Every code is listed in the [diagnostics reference](https://anthonyy232.github.io/ModernLrcParser/articles/diagnostics-reference.html).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/feature-karaoke-dark.png">
+  <img src=".github/readme/feature-karaoke-light.png" alt="02. Karaoke, word by word. FindLineAt returns the enhanced line at 24 seconds; of its three words, Carry and me are marked sung and home is not.">
+</picture>
+
+A line with `<mm:ss.xx>` word timing parses to an `LrcEnhancedLine` with one `LrcWord` per word. `FindLineAt` is a binary search for the line at a playback position, and `LinesInRange` returns the lines coming up. Both apply the file's `[offset:N]`. See [Playback](https://anthonyy232.github.io/ModernLrcParser/articles/playback.html).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/feature-duet-dark.png">
+  <img src=".github/readme/feature-duet-light.png" alt="03. Duets keep their voices. Four lines with M, F and D markers print as Male, Male, Female and Duet: the unmarked second line inherits Male.">
+</picture>
+
+Walaoke `M:`, `F:` and `D:` markers apply to their line and every line after it until the next marker. Each line's `EffectiveVoice` is already resolved, so a player can colour lines without tracking state.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/feature-roundtrip-dark.png">
+  <img src=".github/readme/feature-roundtrip-light.png" alt="04. Out as it came in. A parsed document is shifted by 1.5 seconds and written back with its offset tag, grouped timestamps, voice marker and word timing; parsing the output gives an equal document.">
+</picture>
+
+Documents are immutable records. Edit one with `LrcDocumentBuilder` or a `with` expression, then write it to a string, `TextWriter`, `Stream`, `IBufferWriter<char>` or `IBufferWriter<byte>`, a fixed span (`TryWrite`), or a file (written atomically).
+
+Writing a parsed document and parsing it again gives an equal document, keeping the original `[offset:N]` tag. Timestamps are written as `mm:ss.xx` by default, so millisecond timestamps need `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to survive. `LrcWriter.ValidateForWrite` reports anything that can't be written back.
 
 ## Install
 
@@ -41,12 +99,47 @@ var doc = new LrcDocumentBuilder()
 string lrc = LrcWriter.Write(doc);
 ```
 
+[Getting started](https://anthonyy232.github.io/ModernLrcParser/articles/getting-started.html) walks through parsing, editing, writing and async use.
+
+## Features
+
+- **Full LRC syntax:** `[mm:ss.xx]text`, multi-timestamp `[t1][t2]…` lines, Enhanced LRC word timing `<…>`, and Walaoke voice markers (`M:` / `F:` / `D:`) carried forward to the lines that follow.
+- **Tolerant by default:** malformed input produces diagnostics with stable codes (`LRC0001`–`LRC0099`) and line/column positions instead of exceptions. `LrcStrictness.Strict` throws on the first error.
+- **Any input:** `string`, `ReadOnlySpan<char>`, `ReadOnlyMemory<char>`, `TextReader`, bytes, `Stream` and file paths, sync and async.
+- **Encoding detection** for byte input: BOM, then UTF-8, then a fallback you choose (Latin-1 by default).
+- **Any output:** string, `TextWriter`, `Stream`, `IBufferWriter<char>` or `IBufferWriter<byte>`, fixed spans (`TryWrite`), and atomic file writes.
+- **Playback helpers:** `FindLineAt` and `LinesInRange` look up lines by playback position, applying `[offset:N]`.
+- **Round trips:** writing a parsed document and parsing it again gives an equal document.
+- **Native AOT compatible and trim-safe**, with no dependencies outside the BCL.
+
+## Supported LRC
+
+| Form | Example | Result |
+|---|---|---|
+| Basic line | `[00:12.00]text` | One `LrcPlainLine` |
+| Multi-timestamp line | `[00:23.10][01:04.60]text` | One line per timestamp, sorted by time; written back as a group |
+| Enhanced LRC word timing | `[00:23.10]<00:23.10>Carry <00:23.80>me` | One `LrcEnhancedLine` with a timestamp per word |
+| Walaoke voice markers | `[00:30.00]M: text`, `F:`, `D:` | `EffectiveVoice` on that line and the lines after it |
+| Metadata tags | `[ti:]` `[ar:]` `[al:]` `[au:]` `[lr:]` `[by:]` `[re:]` / `[tool:]` `[ve:]` `[length:]` `[offset:]` | Typed properties on `LrcMetadata` |
+| Other tags | `[foo:bar]` | Kept in `Metadata.RawTags` and written back |
+| Non-standard timestamps | `[00:01]` `[00:01.500]` `[1:02:33.45]` `[01:23,45]` | Accepted, with an informational diagnostic |
+| ID3 language prefix | `eng\|\|[00:01.00]text` | Prefix removed, with an informational diagnostic |
+
 ## Good to know
 
 - Timestamps are kept as written. `[offset:N]` goes to `Metadata.Offset`, and `GetEffectiveTime`, `FindLineAt` and `LinesInRange` apply it. See [Playback](https://anthonyy232.github.io/ModernLrcParser/articles/playback.html).
 - Byte input with no BOM that isn't valid UTF-8 is decoded with `FallbackEncoding` (Latin-1 by default) and reported as `LRC0010`. Legacy encodings such as Shift-JIS or GBK aren't detected: set `LrcParseOptions.Encoding`. See [Encoding pipeline](https://anthonyy232.github.io/ModernLrcParser/articles/encoding-pipeline.html).
 - Lyric text is kept verbatim, including whitespace-only lines and trailing spaces. Filter them when you display lyrics.
 - Common non-standard forms such as `[00:01]`, `[00:01.500]`, `[1:02:33.45]`, `[01:23,45]` and an `eng||` language prefix are accepted with informational diagnostics. See the [diagnostics reference](https://anthonyy232.github.io/ModernLrcParser/articles/diagnostics-reference.html).
+
+## Documentation
+
+- [Getting started](https://anthonyy232.github.io/ModernLrcParser/articles/getting-started.html)
+- [Playback](https://anthonyy232.github.io/ModernLrcParser/articles/playback.html)
+- [Diagnostics reference](https://anthonyy232.github.io/ModernLrcParser/articles/diagnostics-reference.html)
+- [Encoding pipeline](https://anthonyy232.github.io/ModernLrcParser/articles/encoding-pipeline.html)
+- [Options reference](https://anthonyy232.github.io/ModernLrcParser/articles/options.html)
+- [API reference](https://anthonyy232.github.io/ModernLrcParser/api/ModernLrc.html)
 
 ## Comparison
 
@@ -115,8 +208,12 @@ ModernLrc parses 1.3–2.1× faster than Opportunity.LrcParser, the next fastest
 
 ## Contributing
 
-Contributions are welcome. Changes are made with coding agents: point yours at [AGENTS.md](https://github.com/Anthonyy232/ModernLrcParser/blob/main/AGENTS.md), which covers the conventions and the checks a change must pass.
+Contributions are welcome. Changes are made with coding agents; point yours at [AGENTS.md](AGENTS.md) and open a pull request.
 
 ## License
 
-[MIT](https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE)
+Copyright (c) 2026 Anthony La.
+
+ModernLrc is free software, licensed under the [GNU General Public License v3.0](LICENSE) only, and comes with no warranty. Versions up to 2.0.2 were released under the MIT License and stay available under it.
+
+[Nagi](https://github.com/Anthonyy232/Nagi), a music player for Windows, uses ModernLrc for its synced lyrics.

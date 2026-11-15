@@ -1,0 +1,27 @@
+name: Bug report
+description: Something parses, writes or looks up lyrics wrongly
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you expected and what you got, including any diagnostics or exception.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: LRC input and code
+      description: The smallest input and call that show the problem.
+      render: text
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: ModernLrc version
+      placeholder: 2.0.2
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: .NET version and OS
+      placeholder: .NET 10.0.3, Windows 11

@@ -25,7 +25,6 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - A regression test fails without its fix.
 - Deterministic: fake time and observable events, no sleeps.
 - A failing test is a bug until shown otherwise.
-- Invariants (round trips, recovery from bad input) are property tests.
 
 ## Library
 
@@ -34,6 +33,9 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Parsing and writing are hot paths: benchmark a change to them against the last release and report time and allocations.
 - Code shown in the README, the site and the articles must have been compiled and run; show the output it really printed.
 - Published docs URLs must keep working: leave a redirect when a page moves or goes.
+- Invariants (round trips, recovery from bad input) are property tests.
+- Published packages record their commit SHA. Never rewrite a commit at or before the latest release tag, and never move a release tag.
+- The release commit sets the package version and the changelog section. Draft the GitHub release first: pushing the `v*` tag is publishing, and the only thing that publishes. CI checks the tag against the package and the draft, pushes to nuget.org, then publishes the draft. A published version can't be replaced, only unlisted, so tag last and only a commit CI passed on. nuget.org trusts the release workflow by its file name: don't rename it.
 
 ## Done means
 
@@ -56,7 +58,6 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Branch off `main`. A single commit fast-forwards; several merge with `merge: <summary>`.
 - No AI attribution in commits, branches, PRs or releases.
 - One maintainer: amending and force-pushing to tidy history is fine. Keep contributors as authors. Delete stale branches.
-- Published packages record their commit SHA. Never rewrite a commit at or before the latest release tag, and never move a release tag.
 
 ## Pull requests
 
@@ -64,15 +65,15 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 
 ## Releases
 
-- Bump commit `chore: release vX.Y.Z` (package version and changelog section); tag `vX.Y.Z`.
+- Bump commit `chore: release vX.Y.Z`; tag `vX.Y.Z`.
 - Title `ModernLrc X.Y.Z`.
 - Notes: banner image first, then `### New`, `### Improved`, `### Fixed` (only those that apply). One line per change, written for users; no internals, dependency lists or test counts. End with the install command, the NuGet link and the full changelog link.
 - Banner: `node banner.cjs <version> "<highlight>"` on the orphan `media` branch writes `releases/vX.Y.Z.png`; reference its raw URL.
-- Draft the GitHub release first. Pushing the `v*` tag is the only thing that publishes: CI pushes the package to nuget.org, then publishes the draft. A published version can't be replaced, only unlisted, so tag last and only a commit CI passed on. nuget.org trusts the release workflow by its file name: don't rename it.
+- Package registry: nuget.org, published by CI on the tag push; see Library.
 
 ## Agents
 
-- Pushing, amending and force-pushing are allowed. Ask before publishing a release or submitting to a store; pushing a `v*` tag is publishing.
+- Pushing, amending and force-pushing are allowed. Ask before publishing a release or submitting to a store.
 - Leave changes you didn't make alone. Clean up scratch files, processes and emulators.
 - Say what was checked and how, and what wasn't.
 - Short replies; one recommendation, not a list of options.

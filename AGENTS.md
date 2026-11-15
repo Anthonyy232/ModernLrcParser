@@ -1,6 +1,6 @@
 # Working on ModernLrc
 
-The `ModernLrc` NuGet package: an AOT- and trim-compatible .NET 10 library that parses, edits and writes `.lrc` lyrics. The repo is `ModernLrcParser`; the product name everywhere else is ModernLrc.
+A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AOT and trim compatible. It reaches users as the `ModernLrc` package on nuget.org, with a landing page and docs on GitHub Pages. The repo is `ModernLrcParser`; the product name everywhere else is ModernLrc.
 
 ## Code
 
@@ -18,7 +18,6 @@ The `ModernLrc` NuGet package: an AOT- and trim-compatible .NET 10 library that 
 - Only where the reason isn't clear from the code: a quirk, a race, a non-obvious decision.
 - Short fragments, not sentences. Never restate code, narrate, or label sections.
 - Delete comments that no longer match.
-- Public members need XML docs (they become the API reference); say what the signature doesn't.
 
 ## Tests
 
@@ -26,33 +25,20 @@ The `ModernLrc` NuGet package: an AOT- and trim-compatible .NET 10 library that 
 - A regression test fails without its fix.
 - Deterministic: fake time and observable events, no sleeps.
 - A failing test is a bug until shown otherwise.
-- Run the test project, not the solution: `dotnet test` on the solution can pass without running anything.
-- Invariants (round trips, recovery) go in CsCheck properties.
+- Invariants (round trips, recovery from bad input) are property tests.
 
-## Public API
+## Library
 
-- The public API is a semver contract. Removing or changing a public member needs a major version and a `!` commit (`refactor!:`).
-- In tolerant mode malformed input yields a diagnostic, never an exception. Diagnostic codes are stable: don't renumber or reuse them.
-- Every user-visible change gets a `CHANGELOG.md` entry under `[Unreleased]`, and updates the XML docs, the matching `docs/articles` page and the README in the same change.
-- Parsing and writing are hot paths. Benchmark changes to them against the last release (`bench/`) and report time and allocations; prove a rewrite keeps behaviour by fuzzing its output against the last release.
-- The README comparison tables come from the `bench/comparison` branch; sync its `src/` with `main` before re-running it.
-
-## Docs and site
-
-- `site/` is the hand-written landing page; `docs/` is DocFX (articles, API reference from the XML docs, the theme in `docs/template/`). `docs.yml` builds both into one GitHub Pages site on every push to `main`. Published URLs under `articles/` and `api/` must keep working.
-- nuget.org renders no HTML, so the package ships `src/ModernLrc/README.md`, not the root README. Keep the two in step.
-- Code shown in README panels, the site and the articles must have been compiled and run; show the output it really printed.
+- The public API, its documented behaviour and the diagnostic codes are a contract with package consumers. Removing or changing any of them needs a major version and a `!` commit (`refactor!:`); never renumber or reuse a code.
+- Every user-visible change gets a changelog entry under Unreleased and updates the API docs, the matching article and both READMEs in the same change. nuget.org renders no HTML, so the package ships its own README.
+- Parsing and writing are hot paths: benchmark a change to them against the last release and report time and allocations.
+- Code shown in the README, the site and the articles must have been compiled and run; show the output it really printed.
+- Published docs URLs must keep working: leave a redirect when a page moves or goes.
 
 ## Done means
 
 - Diff reviewed against this file.
-- These pass with zero warnings:
-  ```sh
-  dotnet build ModernLrcParser.sln -c Release
-  dotnet test tests/ModernLrc.Tests/ModernLrc.Tests.csproj -c Release --no-build
-  dotnet format ModernLrcParser.sln --verify-no-changes
-  ```
-  For changes to `src/`, also publish and run `tests/ModernLrc.Tests.Aot` as `pr.yml` does.
+- `dotnet build -c Release`, `dotnet test -c Release` and `dotnet format --verify-no-changes` pass with zero warnings; library changes also pass the AOT smoke test that CI runs.
 - Site changes seen in a browser, light and dark. Docs and metadata changes need no end-to-end run.
 - README updated for anything users will notice; behaviour changes called out.
 
@@ -70,7 +56,7 @@ The `ModernLrc` NuGet package: an AOT- and trim-compatible .NET 10 library that 
 - Branch off `main`. A single commit fast-forwards; several merge with `merge: <summary>`.
 - No AI attribution in commits, branches, PRs or releases.
 - One maintainer: amending and force-pushing to tidy history is fine. Keep contributors as authors. Delete stale branches.
-- Published packages record their commit SHA (SourceLink). Never rewrite a commit at or before the latest release tag, and never move a release tag.
+- Published packages record their commit SHA. Never rewrite a commit at or before the latest release tag, and never move a release tag.
 
 ## Pull requests
 
@@ -78,11 +64,11 @@ The `ModernLrc` NuGet package: an AOT- and trim-compatible .NET 10 library that 
 
 ## Releases
 
-- Bump commit `chore: release vX.Y.Z` (`<Version>` in `src/ModernLrc/ModernLrc.csproj`, the `CHANGELOG.md` section); tag `vX.Y.Z`.
-- Pushing a `v*` tag makes `release.yml` publish to nuget.org. A published version can't be replaced, only unlisted, so tag last and only the commit that CI passed on. nuget.org trusts the workflow by its file name: don't rename it.
+- Bump commit `chore: release vX.Y.Z` (package version and changelog section); tag `vX.Y.Z`.
 - Title `ModernLrc X.Y.Z`.
 - Notes: banner image first, then `### New`, `### Improved`, `### Fixed` (only those that apply). One line per change, written for users; no internals, dependency lists or test counts. End with the install command, the NuGet link and the full changelog link.
 - Banner: `node banner.cjs <version> "<highlight>"` on the orphan `media` branch writes `releases/vX.Y.Z.png`; reference its raw URL.
+- Draft the GitHub release first. Pushing the `v*` tag is the only thing that publishes: CI pushes the package to nuget.org, then publishes the draft. A published version can't be replaced, only unlisted, so tag last and only a commit CI passed on. nuget.org trusts the release workflow by its file name: don't rename it.
 
 ## Agents
 

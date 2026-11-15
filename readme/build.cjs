@@ -1,5 +1,5 @@
 // node readme/build.cjs <checkout> : README hero and feature panels (light and dark) into <checkout>/.github/readme/,
-// and the package icon into <checkout>/assets/icon.png. Code and output come from inputs/ (written by capture/),
+// the package icon into <checkout>/assets/icon.png, and the social preview into social-preview.png beside this folder. Code and output come from inputs/ (written by capture/),
 // headlines and copy from <checkout>/site/index.html.
 const fs = require('fs');
 const path = require('path');
@@ -54,13 +54,14 @@ const theme = dark => `<style>
 </style>`;
 const win = (caption, code, cls = '') => `<figure class="win ${cls}">${caption ? `<figcaption>${caption}</figcaption>` : ''}<pre>${code}</pre></figure>`;
 
-const hero = dark => `${theme(dark)}<style>
-  .card { height: 760px; text-align: center; }
-  .brand { display: inline-flex; align-items: center; gap: 10px; margin-top: 48px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+// The social preview is the same composition at 640 px tall, tightened above the stage.
+const hero = (dark, h = 760) => `${theme(dark)}<style>
+  .card { height: ${h}px; text-align: center; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; margin-top: ${h > 700 ? 48 : 34}px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
   .brand svg { width: 30px; height: 30px; }
-  h1 { margin-top: 30px; font-size: 116px; line-height: 0.98; }
+  h1 { margin-top: ${h > 700 ? 30 : 16}px; font-size: ${h > 700 ? 116 : 100}px; line-height: 0.98; }
   p { margin: 22px auto 0; max-width: 560px; text-wrap: balance; font-size: 20px; line-height: 1.45; color: var(--muted); }
-  .stage { position: absolute; left: 120px; right: 120px; top: 452px; height: 420px; border-radius: 24px 24px 0 0; text-align: left; }
+  .stage { position: absolute; left: 120px; right: 120px; top: ${h > 700 ? 452 : 380}px; height: 420px; border-radius: 24px 24px 0 0; text-align: left; }
   .file { position: absolute; left: 56px; top: 40px; width: 560px; }
   .prog { position: absolute; left: 440px; top: 84px; width: 548px; }
   .prog .out { margin: 0 14px 14px; }
@@ -106,6 +107,7 @@ const jobs = [false, true].flatMap(dark => {
     ...panels.map(([name, num, mark, css]) => ({ html: feature(dark, num, name, mark, css), out: out(`feature-${name}-${t}`) })),
   ].map(job => ({ ...job, width: 1280, height: 760, scale: 1.6, selector: '.card' }));
 });
+jobs.push({ html: hero(false, 640).replace('border-radius: 28px;', 'border-radius: 0;'), out: path.join(__dirname, '..', 'social-preview.png'), width: 1280, height: 640, selector: '.card' });
 jobs.push({ html: `<style>body { margin: 0 } svg { display: block; width: 128px; height: 128px }</style>${logo}`, out: path.join(checkout, 'assets/icon.png'), width: 128, height: 128 });
 
 render(jobs);

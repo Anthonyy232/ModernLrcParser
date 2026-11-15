@@ -68,7 +68,8 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Bump commit `chore: release vX.Y.Z`; tag `vX.Y.Z`.
 - Title `ModernLrc X.Y.Z`.
 - Notes: banner image first, then `### New`, `### Improved`, `### Fixed` (only those that apply). One line per change, written for users; no internals, dependency lists or test counts. End with the install command, the NuGet link and the full changelog link.
-- Banner: `node banner.cjs <version> "<highlight>"` on the orphan `media` branch writes `releases/vX.Y.Z.png`; reference its raw URL.
+- Banner: generated and hosted on the orphan `media` branch; reference its raw URL.
+- Generated images (banners, README panels, package icon) are built from the `media` branch; its README has the steps. Re-run its capture after a change to the library or a snippet.
 - Package registry: nuget.org, published by CI on the tag push; see Library.
 
 ## Agents

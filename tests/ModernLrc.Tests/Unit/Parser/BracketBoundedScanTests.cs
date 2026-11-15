@@ -51,10 +51,14 @@ public sealed class BracketBoundedScanTests
     }
 
     [Fact]
-    public void RoundTrip_TagWithEmbeddedNewlineInBuilder_DoesNotSurviveReparse()
+    public void RoundTrip_TagWithEmbeddedNewline_DoesNotSurviveReparse()
     {
-        // Known limitation: the writer emits the newline verbatim, and the parser rejects it loudly.
-        var doc = new LrcDocumentBuilder().WithTitle("Multi\nLine").AddLine("00:01.00", "x").Build();
+        // Known limitation: the builder rejects such a value, but a record initializer can't.
+        // The writer emits the newline verbatim, and the parser rejects it loudly.
+        var doc = new LrcDocumentBuilder().AddLine("00:01.00", "x").Build() with
+        {
+            Metadata = new LrcMetadata { Title = "Multi\nLine" },
+        };
         var lrc = LrcWriter.Write(doc);
 
         var reparsed = LrcParser.Parse(lrc);

@@ -80,29 +80,41 @@ public sealed class LrcDocumentBuilder
     public LrcDocumentBuilder WithVersion(string? value) => Set(LrcMetadataField.Version, value);
 
     /// <summary>Set or clear the track length (<c>length:mm:ss</c>).</summary>
-    public LrcDocumentBuilder WithLength(TimeSpan? value) => Set(LrcMetadataField.Length, value);
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+    public LrcDocumentBuilder WithLength(TimeSpan? value)
+    {
+        if (value is { } length) ArgumentOutOfRangeException.ThrowIfLessThan(length, TimeSpan.Zero, nameof(value));
+        return Set(LrcMetadataField.Length, value);
+    }
 
     /// <summary>Set the document offset (<c>offset:±N</c> ms).</summary>
     public LrcDocumentBuilder WithOffset(TimeSpan value) => Set(LrcMetadataField.Offset, value);
 
-    /// <summary>Append a raw tag entry (preserves insertion order).
-    /// <paramref name="key"/> must be non-empty (whitespace-only is rejected — it would round-trip
-    /// to <c>[ :value]</c> which the parser cannot read back). As in the parser, a known key
-    /// (<c>ti</c>, <c>length</c>, …) also sets the matching typed property.</summary>
+    /// <summary>Append a raw tag entry (preserves insertion order). As in the parser,
+    /// <paramref name="key"/> is lower-cased, and a known key (<c>ti</c>, <c>length</c>, …) also
+    /// sets the matching typed property.</summary>
+    /// <exception cref="ArgumentException">The tag could not be read back: <paramref name="key"/>
+    /// is empty or whitespace, starts with a digit or contains <c>:</c>, <c>[</c>, <c>]</c> or a
+    /// line break, or <paramref name="value"/> contains <c>]</c> or a line break.</exception>
     public LrcDocumentBuilder WithRawTag(string key, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
+        if (char.IsAsciiDigit(key[0]) || key.AsSpan().ContainsAny(":[]\r\n"))
+            throw new ArgumentException("A tag key can't start with a digit or contain ':', '[', ']' or a line break.", nameof(key));
+        ThrowIfUnwritable(value);
+        key = key.ToLowerInvariant();
         _rawTags.Add(new LrcTag(key, value));
         if (LrcMetadataFields.FromKey(key) is { } field && LrcMetadataFields.TryParse(field, value, out var parsed))
             _metadata = LrcMetadataFields.With(_metadata, field, parsed);
         return this;
     }
 
-    /// <summary>Remove every raw tag whose key matches (ordinal).</summary>
+    /// <summary>Remove every raw tag with this key (case-insensitive, as keys are stored lower-cased).</summary>
     public LrcDocumentBuilder RemoveRawTag(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
+        key = key.ToLowerInvariant();
         _rawTags.RemoveAll(t => string.Equals(t.Key, key, StringComparison.Ordinal));
         return this;
     }
@@ -110,9 +122,17 @@ public sealed class LrcDocumentBuilder
     /// <summary>Set a typed property and drop the raw tags it replaces.</summary>
     private LrcDocumentBuilder Set(LrcMetadataField field, object? value)
     {
+        if (value is string text) ThrowIfUnwritable(text);
         _metadata = LrcMetadataFields.With(_metadata, field, value);
         _rawTags.RemoveAll(t => LrcMetadataFields.FromKey(t.Key) == field);
         return this;
+    }
+
+    private static void ThrowIfUnwritable(string value)
+    {
+        // The tag ends at the first ']' or line break.
+        if (value.AsSpan().ContainsAny("]\r\n"))
+            throw new ArgumentException("A tag value can't contain ']' or a line break.", nameof(value));
     }
 
     /// <summary>Add a plain line whose timestamp is parsed from <paramref name="timestamp"/>.</summary>

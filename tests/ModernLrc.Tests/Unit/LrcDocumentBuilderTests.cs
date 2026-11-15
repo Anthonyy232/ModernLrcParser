@@ -57,6 +57,35 @@ public sealed class LrcDocumentBuilderTests
     }
 
     [Fact]
+    public void WithRawTag_UpperCaseKnownKey_IsStoredLowerCasedAndRoundTrips()
+    {
+        var doc = new LrcDocumentBuilder().WithRawTag("TI", "X").Build();
+
+        doc.Metadata.Title.ShouldBe("X");
+        doc.Metadata.RawTags[0].Key.ShouldBe("ti");
+        LrcParser.Parse(LrcWriter.Write(doc)).Document.ShouldBe(doc);
+    }
+
+    [Theory]
+    [InlineData("a:b", "v")]
+    [InlineData("00", "01.00")]
+    [InlineData("a]", "v")]
+    [InlineData("k", "a]b")]
+    [InlineData("k", "a\nb")]
+    public void WithRawTag_TagThatWouldNotParseBack_Throws(string key, string value)
+    {
+        Should.Throw<ArgumentException>(() => new LrcDocumentBuilder().WithRawTag(key, value));
+    }
+
+    [Fact]
+    public void TypedSetters_ValueThatWouldNotParseBack_Throws()
+    {
+        Should.Throw<ArgumentException>(() => new LrcDocumentBuilder().WithTitle("a]b"));
+        Should.Throw<ArgumentException>(() => new LrcDocumentBuilder().WithArtist("a\nb"));
+        Should.Throw<ArgumentOutOfRangeException>(() => new LrcDocumentBuilder().WithLength(TimeSpan.FromSeconds(-5)));
+    }
+
+    [Fact]
     public void WithRawTag_WhitespaceKey_Throws()
     {
         // "[ :value]" would not parse back.

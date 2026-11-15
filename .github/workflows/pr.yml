@@ -6,6 +6,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -28,6 +35,10 @@ jobs:
 
       - name: Test
         run: dotnet test tests/ModernLrc.Tests/ModernLrc.Tests.csproj -c Release --no-build
+
+      - name: Format
+        if: runner.os == 'Linux'
+        run: dotnet format ModernLrcParser.sln --verify-no-changes --no-restore
 
       - name: AOT publish + smoke
         shell: bash

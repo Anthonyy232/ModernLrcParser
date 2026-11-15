@@ -6,6 +6,12 @@ All notable changes to **ModernLrc** are documented in this file. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- ModernLrc is now licensed under GPL-3.0-only. Versions up to 2.0.2 remain under the MIT
+  License.
+- The NuGet package has an icon and its own short README.
+
 ## [2.0.2] — 2026-11-07
 
 ### Fixed

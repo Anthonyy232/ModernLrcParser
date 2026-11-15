@@ -1,0 +1,4 @@
+var doc = LrcParser.ParseFile("song.lrc").Document;
+
+var line = doc.FindLineAt(TimeSpan.FromSeconds(40));
+Console.WriteLine($"{line?.EffectiveVoice}: {line?.GetText()}");

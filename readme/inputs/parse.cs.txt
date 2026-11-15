@@ -1,0 +1,12 @@
+var result = LrcParser.Parse("""
+    [ti:Paper Lanterns]
+    [ar:The Tide Pools]
+    [00:12.00]Paper lanterns on the water
+    [00:17.40]Drifting where the river bends
+    [00:23.10][01:04.60]Carry me home
+    """);
+
+var doc = result.Document;
+Console.WriteLine($"{doc.Metadata.Title} by {doc.Metadata.Artist}");
+foreach (var line in doc.Lines)
+    Console.WriteLine($"{line.Timestamp}  {line.GetText()}");

@@ -1,0 +1,15 @@
+var doc = LrcParser.Parse("""
+    [ti:Paper Lanterns]
+    [offset:250]
+    [00:12.00]Paper lanterns on the water
+    [00:23.10][01:04.60]F: Carry me home
+    [01:10.00]<01:10.00>Carry <01:10.70>me <01:11.20>home
+    """).Document;
+
+var shifted = new LrcDocumentBuilder(doc)
+    .ShiftAll(TimeSpan.FromSeconds(1.5))
+    .Build();
+
+string lrc = LrcWriter.Write(shifted);
+Console.Write(lrc);
+Console.WriteLine(LrcParser.Parse(lrc).Document == shifted);

@@ -1,13 +1,19 @@
-// node banner.cjs <version> "<highlight>" : writes releases/v<version>.png (1280x640).
-// Needs Playwright with Chromium: set NODE_PATH to a node_modules folder that has it.
-const { chromium } = require('playwright');
-const { execSync } = require('child_process');
-const [version, highlight] = process.argv.slice(2);
-const logo = execSync('git show origin/main:assets/logo.svg', { cwd: __dirname, encoding: 'utf8' }).replace(/<title>.*?<\/title>/, '');
+// node releases/banner.cjs <checkout> [<version> "<highlight>"] : 1280x640 release banners in releases/.
+// With a version it records the highlight in banners.json and draws that banner; without, it redraws them all.
+const fs = require('fs');
+const path = require('path');
+const { svg, render } = require('../shared.cjs');
 
-const html = `<!doctype html><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<style>
+const [checkout, version, highlight] = process.argv.slice(2);
+const file = path.join(__dirname, 'banners.json');
+const banners = JSON.parse(fs.readFileSync(file, 'utf8'));
+if (version) {
+  banners[version] = highlight;
+  fs.writeFileSync(file, JSON.stringify(banners, null, 2) + '\n');
+}
+const logo = svg(checkout, 'assets/logo.svg');
+
+const html = (v, text) => `<style>
   * { box-sizing: border-box; }
   body { margin: 0; width: 1280px; height: 640px; display: grid; grid-template-columns: 1fr 520px; background: #f5f3ee; color: #1c1b18; font-family: system-ui, sans-serif; }
   .copy { padding-left: 80px; display: flex; flex-direction: column; justify-content: center; }
@@ -19,14 +25,9 @@ const html = `<!doctype html><meta charset="utf-8">
     background: radial-gradient(60% 80% at 12% 8%, #ffd2b8 0%, transparent 70%), radial-gradient(55% 70% at 92% 20%, #ff9a6e 0%, transparent 70%), radial-gradient(70% 70% at 55% 115%, #ee6337 0%, transparent 65%), #ffdcc8; }
   .stage svg { width: 220px; height: 220px; border-radius: 48px; box-shadow: 0 30px 70px -20px #0009; }
 </style>
-<div class="copy"><div class="brand">${logo}ModernLrc</div><h1>${version}</h1><p>${highlight}</p></div>
+<div class="copy"><div class="brand">${logo}ModernLrc</div><h1>${v}</h1><p>${text}</p></div>
 <div class="stage">${logo}</div>`;
 
-(async () => {
-  const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1280, height: 640 } });
-  await p.setContent(html, { waitUntil: 'networkidle' });
-  await p.evaluate(() => document.fonts.ready);
-  await p.screenshot({ path: `${__dirname}/releases/v${version}.png` });
-  await b.close();
-})();
+render(Object.entries(banners)
+  .filter(([v]) => !version || v === version)
+  .map(([v, text]) => ({ html: html(v, text), out: path.join(__dirname, `v${v}.png`), width: 1280, height: 640 })));

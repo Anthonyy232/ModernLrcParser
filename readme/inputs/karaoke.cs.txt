@@ -1,0 +1,12 @@
+var doc = LrcParser.Parse("""
+    [00:23.10]<00:23.10>Carry <00:23.80>me <00:24.30>home
+    """).Document;
+
+var now = TimeSpan.FromSeconds(24);
+if (doc.FindLineAt(now) is LrcEnhancedLine line)
+    foreach (var word in line.Words)
+    {
+        var at = doc.GetEffectiveTime(word.Timestamp);
+        string state = at <= now ? "sung" : "";
+        Console.WriteLine($"{word.Timestamp}  {word.Text,-6} {state}");
+    }

@@ -1,0 +1,9 @@
+var doc = LrcParser.Parse("""
+    [00:30.00]M: I kept the porch light on
+    [00:34.20]All through the winter
+    [00:38.50]F: I saw it from the road
+    [00:42.90]D: So carry me home
+    """).Document;
+
+foreach (var line in doc.Lines)
+    Console.WriteLine($"{line.EffectiveVoice,-7} {line.GetText()}");

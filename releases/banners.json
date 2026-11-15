@@ -1,0 +1,6 @@
+{
+  "2.0.0": "A simpler API, and metadata edits that stick.",
+  "2.0.1": "Parsing about 35% faster, writing with half the memory.",
+  "2.0.2": "A positive offset now shows lyrics sooner.",
+  "3.0.0": "Now GPL-3.0, and edited documents round-trip equal"
+}

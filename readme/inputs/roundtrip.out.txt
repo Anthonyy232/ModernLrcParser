@@ -1,0 +1,7 @@
+[ti:Paper Lanterns]
+[offset:250]
+
+[00:13.50]Paper lanterns on the water
+[00:24.60][01:06.10]F: Carry me home
+[01:11.50]<01:11.50>Carry <01:12.20>me <01:12.70>home
+True

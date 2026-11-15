@@ -18,6 +18,7 @@
     <PackageTags>lrc;lyrics;parser;writer;aot;trimming;dotnet</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Anthonyy232/ModernLrcParser</PackageProjectUrl>
     <PackageReleaseNotes>See https://github.com/Anthonyy232/ModernLrcParser/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/Anthonyy232/ModernLrcParser</RepositoryUrl>
@@ -25,8 +26,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- nuget.org renders no HTML, so the package gets its own README without the image panels -->
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

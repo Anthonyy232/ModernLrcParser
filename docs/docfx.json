@@ -42,7 +42,7 @@
       "_appTitle": "ModernLrc",
       "_appLogoPath": "logo-small.svg",
       "_appFaviconPath": "logo-small.svg",
-      "_appFooter": "Copyright © 2026 Anthony La. Free software under the <a href='https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE'>GNU GPL v3.0</a>.",
+      "_appFooter": "Copyright © 2026 Anthony La. Free software under the <a href='https://github.com/Anthonyy232/ModernLrcParser/blob/main/LICENSE'>GNU GPL v3.0</a>. Versions up to 2.0.2 were released under the MIT License.",
       "_enableSearch": true,
       "_disableContribution": false,
       "_gitContribute": {

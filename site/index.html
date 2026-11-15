@@ -188,6 +188,7 @@
     const copy = document.getElementById('copy');
     const command = document.getElementById('install');
     const copied = document.getElementById('copied');
+    let reset;
     copy.addEventListener('click', async () => {
       let label = 'Copied';
       try {
@@ -198,7 +199,8 @@
         label = 'Not copied';
       }
       copy.textContent = copied.textContent = label;
-      setTimeout(() => { copy.textContent = 'Copy'; copied.textContent = ''; }, 2000);
+      clearTimeout(reset);
+      reset = setTimeout(() => { copy.textContent = 'Copy'; copied.textContent = ''; }, 2000);
     });
   </script>
 </body>

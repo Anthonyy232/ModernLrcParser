@@ -177,7 +177,7 @@ ModernLrc parses 1.3–2.1× faster than Opportunity.LrcParser, the next fastest
 | `TryParse` / `TryWrite` non-throwing    |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
 | Native AOT compatible                   |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
 | Trim-safe                               |    ✓     |     ✗       |     ✗       |    ✗    |     ✗       |
-| Target framework                        |  net10.0 | netstandard1.0 | netstandard2.1 | portable PCL | netstandard2.0 |
+| Target framework                        | net10.0, net11.0 | netstandard1.0 | netstandard2.1 | portable PCL | netstandard2.0 |
 | Last release on NuGet                   |  2026-11 |  2018-04    |  2025-06    | 2015-06 | 2023-09 (archived) |
 
 ¹ SharpLyrics extracts word timing internally, but its public API only returns single-timestamp lines, and only from a file path.

@@ -4,7 +4,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
     <PackageVersion Include="Kfstorm.LrcParser" Version="1.0.3" />
     <PackageVersion Include="LrcParser" Version="2025.623.0" />
     <PackageVersion Include="Opportunity.LrcParser" Version="1.0.4" />

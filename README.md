@@ -128,7 +128,7 @@ string lrc = LrcWriter.Write(doc);
 
 ## Comparison
 
-ModernLrc 2.0.1 compared with other .NET LRC libraries on 2026-10-13.
+ModernLrc 3.0.0 compared with other .NET LRC libraries on 2026-11-15.
 
 ### Performance
 
@@ -138,23 +138,23 @@ Mean time on synthetic basic LRC (Small ≈ 20 lines, Medium ≈ 200, Large ≈ 
 
 | Library                          | Small (µs)     | Medium (µs)    | Large (µs)       | Large alloc |
 |----------------------------------|---------------:|---------------:|-----------------:|------------:|
-| **ModernLrc**                    | **0.93 (1.00×)** | **6.51 (1.00×)** | **61.5 (1.00×)**   | **331 KB**  |
-| Opportunity.LrcParser 1.0.4      | 1.25 (1.34×) | 9.15 (1.41×) | 130 (2.12×) | 317 KB |
-| Kfstorm.LrcParser 1.0.3          | 7.23 (7.75×) | 58.8 (9.03×) | 579 (9.42×) | 2,156 KB |
-| LrcParser 2025.623.0 (karaoke-dev) | 13.7 (14.7×) | 132 (20.3×) | 1,398 (22.7×) | 5,434 KB |
-| SharpLyrics 1.0.0.2 (archived)   | 109 (117×) | 174 (26.7×) | 848 (13.8×) | 2,252 KB |
+| **ModernLrc**                    | **0.90 (1.00×)** | **6.39 (1.00×)** | **61.7 (1.00×)**   | **331 KB**  |
+| Opportunity.LrcParser 1.0.4      | 1.19 (1.33×) | 8.79 (1.38×) | 88.6 (1.44×) | 317 KB |
+| Kfstorm.LrcParser 1.0.3          | 6.37 (7.11×) | 51.0 (7.99×) | 535 (8.68×) | 2,140 KB |
+| LrcParser 2025.623.0 (karaoke-dev) | 13.3 (14.9×) | 128 (20.1×) | 1,357 (22.0×) | 5,418 KB |
+| SharpLyrics 1.0.0.2 (archived)   | 127 (142×) | 204 (31.9×) | 715 (11.6×) | 2,252 KB |
 
 #### Write
 
 | Library                          | Small (µs)     | Medium (µs)    | Large (µs)       | Large alloc |
 |----------------------------------|---------------:|---------------:|-----------------:|------------:|
-| **ModernLrc**                    | **1.99 (1.00×)** | **15.0 (1.00×)** | **181 (1.00×)**    | **197 KB**  |
-| Opportunity.LrcParser 1.0.4      | 1.83 (0.96×) | 17.0 (1.15×) | 246 (1.36×) | 648 KB |
-| LrcParser 2025.623.0 (karaoke-dev) | 4.31 (2.25×) | 31.1 (2.10×) | 446 (2.46×) | 2,013 KB |
+| **ModernLrc**                    | **1.43 (1.00×)** | **13.0 (1.00×)** | **195 (1.00×)**    | **197 KB**  |
+| Opportunity.LrcParser 1.0.4      | 1.75 (1.23×) | 16.1 (1.23×) | 254 (1.30×) | 648 KB |
+| LrcParser 2025.623.0 (karaoke-dev) | 2.98 (2.08×) | 28.5 (2.19×) | 406 (2.08×) | 1,997 KB |
 | Kfstorm.LrcParser 1.0.3          | — | — | — | (no write API) |
 | SharpLyrics 1.0.0.2 (archived)   | — | — | — | (no write API) |
 
-ModernLrc parses 1.3–2.1× faster than Opportunity.LrcParser, the next fastest, with about 5% more allocation. It writes medium and large inputs 1.15–1.36× faster with about a third of the allocation; Opportunity.LrcParser is slightly faster on small inputs.
+ModernLrc parses 1.3–1.4× faster than Opportunity.LrcParser, the next fastest, with about 5% more allocation. It writes 1.2–1.3× faster with about a third of the allocation.
 
 ### Features
 
@@ -188,7 +188,7 @@ ModernLrc parses 1.3–2.1× faster than Opportunity.LrcParser, the next fastest
 
 - Inputs are `string` constants of basic LRC with an ID3 header, so no file I/O is timed. SharpLyrics only reads files, so its input is written to a temp file during setup.
 - Each library is called through its simplest public entry point, untuned. Write benchmarks start from the library's own parsed model, so only serialization is timed.
-- BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, AMD Ryzen 7 9850X3D. Absolute numbers vary by machine; compare the ratios.
+- BenchmarkDotNet 0.16.0-preview.2, .NET 11.0.0, Windows 11, AMD Ryzen 7 9850X3D. Absolute numbers vary by machine; compare the ratios.
 - The harness is [`bench/ModernLrc.Benchmarks.Comparison`](bench/ModernLrc.Benchmarks.Comparison); run it with `dotnet run -c Release --project bench/ModernLrc.Benchmarks.Comparison -- --filter "*"`.
 
 ## Contributing

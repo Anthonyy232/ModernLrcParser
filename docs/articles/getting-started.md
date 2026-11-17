@@ -138,8 +138,9 @@ started.
 
 Writing a document with the default options and parsing the output gives an equal
 document, whether it was parsed, built with `LrcDocumentBuilder` or edited with
-`with`, apart from the cases listed below. Voice markers, multi-timestamp lines, word timing, metadata (including
-duplicate and unknown tags) and the original `[offset:N]` tag are kept.
+`with`, apart from the cases listed below. Voice markers, multi-timestamp lines, word
+timing, metadata (including duplicate and unknown tags) and the original `[offset:N]`
+tag are kept.
 
 ```csharp
 var doc1 = LrcParser.Parse(source).Document;
@@ -154,7 +155,8 @@ and untimed text is dropped. Beyond that:
   `[00:01.50]`, and so does a line shifted by a few milliseconds. Set
   `TimestampPrecision = LrcTimestampPrecision.Milliseconds` to keep milliseconds.
 - `MetadataOrdering = LrcMetadataOrdering.Alphabetical` writes the tags in a different
-  order, so the result has the same values but isn't equal.
+  order, so the result has the same values but isn't equal unless the tags were
+  already in key order.
 - Two documents are equal when their lines and typed metadata match and they would be
   written with the same tags. `Metadata.RawTags` itself can differ: a parsed document
   lists every tag it read, a built one only those passed to `WithRawTag`, and raw

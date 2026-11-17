@@ -51,8 +51,8 @@ LrcWriter.Write(edited);   // "[ti:New]\n[xx:custom]\n\n[00:01.00]hi\n"
 
 `MetadataOrdering` sets the order:
 
-- **`Canonical`**: typed values not written from raw tags, in the order
-  `ti, ar, al, au, lr, length, by, offset, re, ve`, then the raw tags in their
-  original order.
+- **`Canonical`**: typed values their raw tags no longer agree with, or that
+  have none, in the order `ti, ar, al, au, lr, length, by, offset, re, ve`, then
+  the remaining raw tags in their original order.
 - **`Alphabetical`**: every tag A to Z by key; tags with the same key keep their
   order.

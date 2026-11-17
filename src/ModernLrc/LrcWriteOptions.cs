@@ -32,8 +32,8 @@ public enum LrcTimestampPrecision
 /// <summary>Ordering policy for the metadata block.</summary>
 public enum LrcMetadataOrdering
 {
-    /// <summary>Typed accessors with no matching raw tag in
-    /// <c>ti, ar, al, au, lr, length, by, offset, re, ve</c> order, then
+    /// <summary>Typed values their raw tags no longer agree with, or that have none, in
+    /// <c>ti, ar, al, au, lr, length, by, offset, re, ve</c> order, then the remaining
     /// <c>RawTags</c> in array order.</summary>
     Canonical = 0,
 

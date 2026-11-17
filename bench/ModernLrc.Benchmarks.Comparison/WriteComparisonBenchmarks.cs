@@ -1,5 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using ModernLrc.Benchmarks.Comparison.Adapters;
+using LrcParser.Model;
+using Opportunity.LrcParser;
+using KaraokeLrcParser = LrcParser.Parser.Lrc.LrcParser;
 
 namespace ModernLrc.Benchmarks.Comparison;
 
@@ -8,29 +10,31 @@ namespace ModernLrc.Benchmarks.Comparison;
 [MemoryDiagnoser]
 public class WriteComparisonBenchmarks
 {
+    private static readonly KaraokeLrcParser Karaoke = new();
+
     [ParamsSource(nameof(Inputs))]
     public NamedInput Input { get; set; } = Corpus.Small;
 
     public static IEnumerable<NamedInput> Inputs => Corpus.All;
 
-    private object _modernParsed = null!;
-    private object _karaokeParsed = null!;
-    private object _opportunityParsed = null!;
+    private LrcDocument _modern = LrcDocument.Empty;
+    private Song _karaoke = null!;
+    private IParseResult<Line> _opportunity = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _modernParsed = ModernLrcAdapter.Parse(Input.Text);
-        _karaokeParsed = KaraokeDevAdapter.Parse(Input.Text);
-        _opportunityParsed = OpportunityLiuAdapter.Parse(Input.Text);
+        _modern = LrcParser.Parse(Input.Text).Document;
+        _karaoke = Karaoke.Decode(Input.Text);
+        _opportunity = Lyrics.Parse(Input.Text);
     }
 
     [Benchmark(Baseline = true)]
-    public string Lib_ModernLrc() => ModernLrcAdapter.Write(_modernParsed);
+    public string Lib_ModernLrc() => LrcWriter.Write(_modern);
 
     [Benchmark]
-    public string Lib_KaraokeDev() => KaraokeDevAdapter.Write(_karaokeParsed);
+    public string Lib_KaraokeDev() => Karaoke.Encode(_karaoke);
 
     [Benchmark]
-    public string Lib_OpportunityLiu() => OpportunityLiuAdapter.Write(_opportunityParsed);
+    public string Lib_OpportunityLiu() => _opportunity.Lyrics.ToString();
 }

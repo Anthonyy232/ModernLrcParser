@@ -1,11 +1,16 @@
 using BenchmarkDotNet.Attributes;
-using ModernLrc.Benchmarks.Comparison.Adapters;
+using Kfstorm.LrcParser;
+using Opportunity.LrcParser;
+using SharpLyrics;
+using KaraokeLrcParser = LrcParser.Parser.Lrc.LrcParser;
 
 namespace ModernLrc.Benchmarks.Comparison;
 
 [MemoryDiagnoser]
 public class ParseComparisonBenchmarks
 {
+    private static readonly KaraokeLrcParser Karaoke = new();
+
     [ParamsSource(nameof(Inputs))]
     public NamedInput Input { get; set; } = Corpus.Small;
 
@@ -22,24 +27,21 @@ public class ParseComparisonBenchmarks
     }
 
     [GlobalCleanup]
-    public void Cleanup()
-    {
-        if (File.Exists(_tempFile))
-            File.Delete(_tempFile);
-    }
+    public void Cleanup() => File.Delete(_tempFile);
 
     [Benchmark(Baseline = true)]
-    public object Lib_ModernLrc() => ModernLrcAdapter.Parse(Input.Text);
+    public object Lib_ModernLrc() => LrcParser.Parse(Input.Text);
 
     [Benchmark]
-    public object Lib_Kfstorm() => KfstormAdapter.Parse(Input.Text);
+    public object Lib_Kfstorm() => LrcFile.FromText(Input.Text);
 
     [Benchmark]
-    public object Lib_KaraokeDev() => KaraokeDevAdapter.Parse(Input.Text);
+    public object Lib_KaraokeDev() => Karaoke.Decode(Input.Text);
 
     [Benchmark]
-    public object Lib_OpportunityLiu() => OpportunityLiuAdapter.Parse(Input.Text);
+    public object Lib_OpportunityLiu() => Lyrics.Parse(Input.Text);
 
+    // Reads files only
     [Benchmark]
-    public object Lib_SharpLyrics() => SharpLyricsAdapter.Parse(_tempFile);
+    public object Lib_SharpLyrics() => LyricReader.GetLyrics(_tempFile);
 }

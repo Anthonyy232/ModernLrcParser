@@ -1,4 +1,4 @@
-// node releases/banner.cjs <checkout> [<version> "<highlight>"] : 1280x640 release banners in releases/.
+// node releases/banner.cjs <checkout> [<version> "<highlight>"] : release banners, 1280x640 at 2x, in releases/.
 // With a version it records the highlight in banners.json and draws that banner; without, it redraws them all.
 const fs = require('fs');
 const path = require('path');
@@ -30,4 +30,4 @@ const html = (v, text) => `<style>
 
 render(Object.entries(banners)
   .filter(([v]) => !version || v === version)
-  .map(([v, text]) => ({ html: html(v, text), out: path.join(__dirname, `v${v}.png`), width: 1280, height: 640 })));
+  .map(([v, text]) => ({ html: html(v, text), out: path.join(__dirname, `v${v}.png`), width: 1280, height: 640, scale: 2 })));

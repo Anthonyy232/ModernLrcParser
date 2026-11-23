@@ -26,7 +26,7 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Deterministic: fake time and observable events, no sleeps.
 - A failing test is a bug until shown otherwise.
 
-## Library
+## ModernLrc
 
 - The public API, its documented behaviour and the diagnostic codes are a contract with package consumers. Removing or changing any of them needs a major version and a `!` commit (`refactor!:`); never renumber or reuse a code.
 - Every user-visible change gets a changelog entry under Unreleased and updates the API docs, the matching article and both READMEs in the same change. nuget.org renders no HTML, so the package ships its own README.
@@ -34,8 +34,6 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Code shown in the README, the site and the articles must have been compiled and run; show the output it really printed.
 - Published docs URLs must keep working: leave a redirect when a page moves or goes.
 - Invariants (round trips, recovery from bad input) are property tests.
-- Published packages record their commit SHA. Never rewrite a commit at or before the latest release tag, and never move a release tag.
-- The release commit sets the package version and the changelog section. Draft the GitHub release first: pushing the `v*` tag is publishing, and the only thing that publishes. CI checks the tag against the package and the draft, pushes to nuget.org, then publishes the draft. A published version can't be replaced, only unlisted, so tag last and only a commit CI passed on. nuget.org trusts the release workflow by its file name: don't rename it.
 
 ## Done means
 
@@ -49,6 +47,7 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - README is for users: what it does, how to get it, how to use it. No internals, no agent instructions.
 - This file is for agents: only what can't be found quickly in the code.
 - No meta docs in the repo (notes, audits, plans, reports).
+- Generated images are built from the orphan `media` branch; its README has the steps. Re-run its capture after a change to the library or a snippet.
 
 ## Git
 
@@ -68,9 +67,9 @@ A .NET library that parses, edits and writes `.lrc` lyrics files, kept Native AO
 - Bump commit `chore: release vX.Y.Z`; tag `vX.Y.Z`.
 - Title `ModernLrc X.Y.Z`.
 - Notes: banner image first, then `### New`, `### Improved`, `### Fixed` (only those that apply). One line per change, written for users; no internals, dependency lists or test counts. End with the install command, the NuGet link and the full changelog link.
-- Banner: generated and hosted on the orphan `media` branch; reference its raw URL.
-- Generated images (banners, README panels, package icon) are built from the `media` branch; its README has the steps. Re-run its capture after a change to the library or a snippet.
-- Package registry: nuget.org, published by CI on the tag push; see Library.
+- Banner: built and hosted on the `media` branch; reference its raw URL.
+- The release commit also sets the changelog section. Draft the GitHub release first: pushing the `v*` tag is publishing to nuget.org, and the only thing that publishes; CI then publishes the draft. A published version can't be replaced, only unlisted, so tag last and only a commit CI passed on.
+- Published packages record their commit SHA: never rewrite a commit at or before the latest release tag, or move a release tag. nuget.org trusts the release workflow by its file name: don't rename it.
 
 ## Agents
 

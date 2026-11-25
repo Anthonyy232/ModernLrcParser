@@ -1,4 +1,4 @@
-name: docs
+name: Pages
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - 'docs/**'
       - 'site/**'
       - 'assets/logo-small.svg'
-      - '.github/workflows/docs.yml'
+      - '.github/workflows/pages.yml'
       - 'global.json'
       - 'dotnet-tools.json'
       - 'Directory.Build.props'

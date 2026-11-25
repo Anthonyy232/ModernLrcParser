@@ -4,6 +4,13 @@
 </picture>
 
 <p align="center">
+  <a href="https://www.nuget.org/packages/ModernLrc"><img src="https://img.shields.io/nuget/v/ModernLrc?style=flat-square" alt="NuGet version"></a>
+  <a href="https://www.nuget.org/packages/ModernLrc"><img src="https://img.shields.io/nuget/dt/ModernLrc?style=flat-square" alt="NuGet downloads"></a>
+  <a href="https://github.com/Anthonyy232/ModernLrcParser/actions/workflows/checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/Anthonyy232/ModernLrcParser/checks.yml?style=flat-square&label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Anthonyy232/ModernLrcParser?style=flat-square" alt="License"></a>
+</p>
+
+<p align="center">
   <a href="https://www.nuget.org/packages/ModernLrc"><b>Get ModernLrc on NuGet</b></a>
   &nbsp;·&nbsp;
   <a href="https://anthonyy232.github.io/ModernLrcParser/"><b>Documentation</b></a>
@@ -193,7 +200,7 @@ ModernLrc parses 1.3–1.4× faster than Opportunity.LrcParser, the next fastest
 
 ## Contributing
 
-Contributions are welcome. Changes are made with coding agents; point yours at [AGENTS.md](AGENTS.md) and open a pull request.
+Contributions are welcome. Report bugs in [issues](https://github.com/Anthonyy232/ModernLrcParser/issues), suggest features in [Discussions](https://github.com/Anthonyy232/ModernLrcParser/discussions). Changes are made with coding agents; point yours at [AGENTS.md](AGENTS.md) and open a pull request.
 
 If ModernLrc is useful to you, you can support it through [GitHub Sponsors](https://github.com/sponsors/Anthonyy232).
 

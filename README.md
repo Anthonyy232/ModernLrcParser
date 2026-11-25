@@ -195,6 +195,8 @@ ModernLrc parses 1.3–1.4× faster than Opportunity.LrcParser, the next fastest
 
 Contributions are welcome. Changes are made with coding agents; point yours at [AGENTS.md](AGENTS.md) and open a pull request.
 
+If ModernLrc is useful to you, you can support it through [GitHub Sponsors](https://github.com/sponsors/Anthonyy232).
+
 ## License
 
 Copyright (c) 2026 Anthony La.
